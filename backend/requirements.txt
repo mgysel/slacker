@@ -1,0 +1,4 @@
+flask
+flask-cors
+flask_resize
+random-word
