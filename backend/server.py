@@ -11,10 +11,13 @@ import threading
 import json
 from json import dumps
 import urllib
-from flask import Flask, request, redirect, url_for
-from flask_cors import CORS
+from flask import Flask, request, redirect, url_for, make_response
+from flask_cors import CORS, cross_origin
+from flask.json import jsonify
+from bson.objectid import ObjectId
+from functools import wraps
 from error import InputError, AccessError
-from auth import auth_register, auth_logout, auth_login, \
+from auth import auth_register, auth_login, auth_logout, \
 auth_request, auth_reset
 from user import user_profile, user_profile_setname, \
 user_profile_setemail, user_profile_sethandle, \
@@ -28,6 +31,9 @@ message_edit, message_sendlater, message_react, \
 message_unreact, message_pin, message_unpin, hangman
 from other import standup_active, standup_start, usersAll, \
 standup_send, admin_userpermission_change, admin_user_remove
+import jwt
+
+from objects.userObject import User
 
 sys.path.append("./src")
 
@@ -74,7 +80,8 @@ def defaultHandler(error):
 
 APP = Flask(__name__)
 CORS(APP)
-
+APP.config['SECRET_KEY'] = 'your secret key'
+APP.config['CORS_HEADERS'] = 'Content-Type'
 APP.config['TRAP_HTTP_EXCEPTIONS'] = True
 APP.register_error_handler(Exception, defaultHandler)
 
@@ -86,30 +93,17 @@ APP.register_error_handler(Exception, defaultHandler)
 ######### auth.py routes #########
 '''
 @APP.route('/auth/register', methods=['POST'])
+@cross_origin()
 def register_user():
     '''
-    Registers a user and returns u_id and token
+    Registers a user
     '''
     usr_info = request.get_json()
 
     usr = auth_register(usr_info['email'], usr_info['password'], \
-                        usr_info['name_first'], usr_info['name_last'], \
-                        USER_DATA)
-
+                        usr_info['name_first'], usr_info['name_last'])
+    
     return dumps(usr)
-
-
-@APP.route('/auth/logout', methods=['POST'])
-def logout_user():
-    '''
-    Logs out a user and a is_success statement
-    '''
-    usr_info = request.get_json()
-
-    result = auth_logout(usr_info['token'], USER_DATA)
-
-    return dumps(result)
-
 
 @APP.route('/auth/login', methods=['POST'])
 def login_user():
@@ -118,10 +112,20 @@ def login_user():
     '''
     usr_info = request.get_json()
 
-    result = auth_login(usr_info['email'], usr_info['password'], USER_DATA)
+    result = auth_login(usr_info['email'], usr_info['password'])
 
     return dumps(result)
 
+@APP.route('/auth/logout', methods=['POST'])
+def logout_user():
+    '''
+    Logs out a user and a is_success statement
+    '''
+    usr_info = request.get_json()
+
+    result = auth_logout(usr_info['token'])
+
+    return dumps(result)
 
 @APP.route('/auth/passwordreset/request', methods=['POST'])
 def request_reset():
@@ -131,7 +135,7 @@ def request_reset():
     '''
     req_data = request.get_json()
 
-    result = auth_request(req_data['email'], USER_DATA)
+    result = auth_request(req_data['email'])
 
     return dumps(result)
 
@@ -228,7 +232,7 @@ def users_channels():
     '''
     token = request.args['token']
 
-    result = channels_list(token, CHANNEL_DATA, USER_DATA)
+    result = channels_list(token)
 
     return dumps(result)
 
@@ -240,7 +244,7 @@ def all_channels():
     '''
     token = request.args['token']
 
-    result = channels_listall(token, CHANNEL_DATA, USER_DATA)
+    result = channels_listall(token)
 
     return dumps(result)
 
@@ -253,7 +257,7 @@ def create_channel():
     req_data = request.get_json()
 
     result = channels_create(req_data['token'], req_data['name'], \
-    req_data['is_public'], CHANNEL_DATA, USER_DATA)
+    req_data['is_public'])
 
     return dumps(result)
 
@@ -540,40 +544,5 @@ def reset_data():
 
     return dumps({})
 
-
-def save_data():
-    '''
-    Saves server data via pickle
-    '''
-    global USER_DATA, CHANNEL_DATA, MESSAGE_DATA, HANGMAN_DATA
-
-    # Saves USER_DATA
-    with open('src/user_data.p', 'wb') as FILE:
-        pickle.dump(USER_DATA, FILE)
-
-    # Saves CHANNEL_DATA
-    with open('src/channel_data.p', 'wb') as FILE:
-        pickle.dump(CHANNEL_DATA, FILE)
-
-    # Saves MESSAGE_DATA
-    with open('src/message_data.p', 'wb') as FILE:
-        pickle.dump(MESSAGE_DATA, FILE)
-
-    # Saves HANGMAN_DATA
-    with open('src/hangman_data.p', 'wb') as FILE:
-        pickle.dump(HANGMAN_DATA, FILE)
-
-
-def save_timer():
-    '''
-    Timer to auto-saves server data every second
-    '''
-    timer = threading.Timer(1.0, save_timer)
-    timer.start()
-    save_data()
-# Starts auto-save timer
-save_timer()
-
-
 if __name__ == "__main__":
-    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else 2080))
+    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else 2080), debug=True)

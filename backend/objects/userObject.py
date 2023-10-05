@@ -20,14 +20,17 @@ class User:
     '''
     User class that contains basic user info/methods
     '''
-    def __init__(self, _id, email, password, first_name, last_name, handle, reset_code):
+    def __init__(self, _id, email, password, name_first, name_last, handle_str, profile_img_url, token, reset_code, permission_id):
         self._id = _id
         self.email = email
         self.password = password
-        self.first_name = first_name
-        self.last_name = last_name
-        self.handle = handle
+        self.name_first = name_first
+        self.name_last = name_last
+        self.handle_str = handle_str
+        self.token = token
+        self.profile_img_url = profile_img_url
         self.reset_code = reset_code
+        self.permission_id = permission_id
 
     @staticmethod
     def from_json(user_json):
@@ -60,7 +63,7 @@ class User:
         '''
         Returns list of User objects from the database
         '''
-        db = MongoWrapper().client['vinyl_store']
+        db = MongoWrapper().client['Peerstr']
         coll = db['users']
         users = []
         for user_json in coll.find():
@@ -75,7 +78,7 @@ class User:
         '''
         json_obj = user.to_json()
         if json_obj != None:
-            db = MongoWrapper().client['vinyl_store']
+            db = MongoWrapper().client['Peerstr']
             coll = db['users']
             try:
                 inserted = coll.insert_one(json_obj)
@@ -89,7 +92,7 @@ class User:
         Gets current stock of a product in user's cart
         '''
         # Find user
-        db = MongoWrapper().client['vinyl_store']
+        db = MongoWrapper().client['Peerstr']
         coll = db['users']
 
         user_json = coll.find_one({ '_id': userId })
@@ -106,70 +109,17 @@ class User:
 
         return cart_product_quantity
 
-
-
-    @staticmethod
-    def add_to_cart(userId, product_id, quantity):
-        '''
-        Adds a product to user's cart
-        '''
-        # Find user
-        db = MongoWrapper().client['vinyl_store']
-        coll = db['users']
-
-        user_json = coll.find_one({ '_id': userId })
-        
-        if user_json:
-            print("Found user json")
-            user_cart = user_json['cart']
-            is_product_in_cart = False
-            for item in user_cart:
-                if item['product_id'] == product_id:
-                    print("the product_id exists, so updating its quantity")
-                    item['quantity'] += quantity
-                    is_product_in_cart = True
-
-            if not is_product_in_cart:
-                user_cart.append({'product_id': product_id, 'quantity': quantity})
-
-            query = { '_id': userId }
-            values = { "$set": { 'cart': user_cart } }
-            coll.update_one(query, values)
-
-    
-
-    def is_admin(self):
-        '''
-        Determines if user object is an administrator
-        Returns True if admin, False otherwise
-        '''
-        return self.role == "admin"
-
-    @classmethod
-    def unused_email(cls, user_email):
-        '''
-        Determines if the supplied email is unused
-        Returns True if email unused
-        Returns False if email taken
-        '''
-        db = MongoWrapper().client['vinyl_store']
-        coll = db['users']
-        return(coll.find_one({ 'email': user_email }) is None)
-
     @classmethod
     def find_user_by_attribute(cls, attribute, user_attribute):
         '''
         Finds a user by a specific attribute
         Returns user object
         '''
-        db = MongoWrapper().client['vinyl_store']
+        db = MongoWrapper().client['Peerstr']
         coll = db['users']
         user_json = coll.find_one({ attribute: user_attribute })
 
-        if user_json:
-            user = User.from_json(user_json)
-            return user
-        return None
+        return user_json
 
     @classmethod
     def find_users_from_search(cls, query, page):
@@ -188,7 +138,7 @@ class User:
         skip = (int(page)-1)*PAGE_SIZE
         limit = PAGE_SIZE
 
-        db = MongoWrapper().client['vinyl_store']
+        db = MongoWrapper().client['Peerstr']
         coll = db['users']
         results = coll.find(filter=filter,skip=skip,limit=limit).collation({'locale':'en'}).sort([('first_name',1),('last_name',1)])
 
@@ -202,7 +152,7 @@ class User:
         '''
         query = { query_attribute: query_user_attribute }
         values = { "$set": { attribute: user_attribute } }
-        db = MongoWrapper().client['vinyl_store']
+        db = MongoWrapper().client['Peerstr']
         coll = db['users']
         coll.update_one(query, values)
 
@@ -214,7 +164,7 @@ class User:
         '''
         query = { query_attribute: query_user_attribute }
         values = { "$push": { attribute: user_attribute } }
-        db = MongoWrapper().client['vinyl_store']
+        db = MongoWrapper().client['Peerstr']
         coll = db['users']
         coll.update_one(query, values)
 
@@ -226,7 +176,7 @@ class User:
         '''
         query = { query_attribute: query_user_attribute }
         values = { "$set": values }
-        db = MongoWrapper().client['vinyl_store']
+        db = MongoWrapper().client['Peerstr']
         coll = db['users']
         coll.update_one(query, values)
 

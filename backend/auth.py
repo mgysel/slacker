@@ -10,71 +10,19 @@ import smtplib
 import ssl
 from helpers import valid_email, queryUserData, isValidUser
 from error import AccessError, InputError
-
-'''
-########## Helper functions ##########
-'''                                             # pylint: disable=pointless-string-statement
-def hash_string(string):
-    '''
-    Takes in a string and returns the sha256 hash for that string
-    '''
-    return hashlib.sha256(string.encode()).hexdigest()
-
-
-def gen_string():
-    '''
-    Generates a random string, by hashing a large number generated from the
-    random library
-    '''
-    # Uses random to generate a large number
-    token_base = randint(1, 100**100) + (27**100 * randint(-100**100, 100**100))
-
-    return hash_string(str(token_base))
-
-
-def gen_handle(name_first, name_last, USER_DATA):       # pylint: disable=invalid-name
-    '''
-    Generates a handle for the user composed of the lower case first and last
-    name combined. Will only take upto 20 characters then check if taken. If
-    taken it will change the last 5 char to randomly generated number, if it
-    is still taken then it will call itself and redo the process.
-    '''
-    if len(name_first) < 20:
-        handle = name_first.lower()
-    else:
-        handle = name_first.lower()[:20]
-
-    for char in name_last.lower():
-        handle = handle + char
-        if len(handle) >= 20:
-            break
-
-    # If taken changes last 5 to num
-    if not unique_handle(handle, USER_DATA):
-        handle = handle[:15] + str(randint(1, 99999))
-
-    # In case no handle is still taken will try process again
-    if not unique_handle(handle, USER_DATA):
-        handle = gen_handle(name_first, name_last, USER_DATA)
-
-    return handle
-
-
-def unique_handle(handle, USER_DATA):       # pylint: disable=invalid-name
-    '''
-    Checks if a handle is unique or taken
-    '''
-    for usr in USER_DATA['users']:
-        if handle == usr['handle_str']:
-            return False
-
-    return True
+from objects.userObject import User
+from flask import Flask, request, redirect, url_for, make_response, jsonify
+from json import dumps
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+from datetime import datetime, timedelta
 
 
 '''
 ########## Main functions ##########
-'''                                             # pylint: disable=pointless-string-statement
-def auth_login(email, password, USER_DATA):     # pylint: disable=invalid-name
+'''                      
+
+def auth_login(email, password):     # pylint: disable=invalid-name
     '''
     Takes in a password, and email then searches user data for a match, if
     found will generate a token and mark user as logged in
@@ -84,71 +32,29 @@ def auth_login(email, password, USER_DATA):     # pylint: disable=invalid-name
         raise InputError('Email or Password is Invalid!')
 
     # Check Email belongs to a user
-    flag = 0
-    for usr in USER_DATA['users']:
-        if email == usr['email']:
-            flag = 1
-            break
+    user = User.find_user_by_attribute('email', email)
+    print("User: ", user)
+    if user is None:
+        raise InputError('Email is Invalid!')
 
-    if flag == 0:
-        raise InputError('Email or Password is Invalid!')
-
-    # Check that pssword is correct
-    for usr in USER_DATA['users']:
-        if email == usr['email']:
-            if hash_string(password) != usr['password']:
-                raise InputError('Email or Password is Invalid!')
+    # Check password is correct
+    if hash_string(password) != user['password']:
+        raise InputError('Password is Invalid!')
 
     # Get u_id
-    user_id = 0
-    for usr in USER_DATA['users']:
-        if email == usr['email']:
-            user_id = usr['u_id']
-            break
+    user_id = user['_id']
 
     # Generate token
     tok = gen_string()
     # Update token for user
-    for usr in USER_DATA['users']:
-        if user_id == usr['u_id']:
-            usr['token'] = tok
-            break
+    User.update_user_attribute('email', email, 'token', tok)
 
     return {
-        'u_id': user_id,
+        'u_id': str(user_id),
         'token': tok,
     }
 
-
-def auth_logout(token, USER_DATA):      # pylint: disable=invalid-name
-    '''
-    Given a users token it will search through USER_DATA and invalidate the
-    the token logging the user out
-    '''
-
-    # -1 means logged-out hence AccessError
-    if token == -1:
-        raise AccessError(description='Invalid token given!')
-
-    else:
-        flag = 0
-        # Invalidate token for that user
-        for usr in USER_DATA['users']:
-            if token == usr['token']:
-                flag = 1
-                usr['token'] = -1
-                break
-
-    # Makes sure that the token is indeed valid
-    if flag == 0:
-        raise AccessError(description='Invalid token given!')
-
-    return {
-        'is_success': True
-        }
-
-
-def auth_register(email, password, name_first, name_last, USER_DATA):       # pylint: disable=invalid-name
+def auth_register(email, password, name_first, name_last):       # pylint: disable=invalid-name
     '''
     Using the data passed in attempts to make a new user.
     Errors from invalid email, email taken, password < 6 characters,
@@ -159,9 +65,9 @@ def auth_register(email, password, name_first, name_last, USER_DATA):       # py
     if not valid_email(email):
         raise InputError(description='Email is invalid!')
 
-    for usr in USER_DATA['users']:
-        if email == usr['email']:
-            raise InputError(description='Email is taken!')
+    # Check if email already used
+    if not User.unused_email(email):
+        raise InputError(description='Email is taken!')
 
     # Checks password is < 6 characters
     if len(password) < 6:
@@ -193,49 +99,80 @@ def auth_register(email, password, name_first, name_last, USER_DATA):       # py
     # Generates dictionary for new users info
     new_user = {}
 
-    new_user['u_id'] = USER_DATA['num_users']
     new_user['email'] = email
     new_user['password'] = hash_string(password)
     new_user['name_first'] = name_first
     new_user['name_last'] = name_last
-    new_user['handle_str'] = gen_handle(name_first, name_last, USER_DATA)
+    new_user['handle_str'] = gen_handle(name_first, name_last)
     new_user['profile_img_url'] = ''
     new_user['token'] = gen_string()
     # Code used to reset password, -1 means not requested
     new_user['reset_code'] = -1
 
     # First user has permission_id 1 (owner of slackr) else 2 (regular member)
-    if new_user['u_id'] == 0:
-        new_user['permission_id'] = 1
-    else:
-        new_user['permission_id'] = 2
+    # if new_user['u_id'] == 0:
+    #     new_user['permission_id'] = 1
+    # else:
+    #     new_user['permission_id'] = 2
+    new_user['permission_id'] = 2
 
-    # Appends new user to USER_DATA['users']
-    USER_DATA['users'].append(new_user)
-    USER_DATA['num_users'] = USER_DATA['num_users'] + 1
+    # Add user to database
+    user = User(
+        None, 
+        new_user['email'], 
+        new_user['password'], 
+        new_user['name_first'], 
+        new_user['name_last'], 
+        new_user['handle_str'], 
+        new_user['profile_img_url'],
+        new_user['token'],
+        new_user['reset_code'], 
+        new_user['permission_id']
+    )
+    user_id = User.insert_one(user)
+    print("AUTH_REGISTER user_id: ", user_id)
 
     # Returns u_id and token of new user without other data
     return {
-        'u_id': new_user['u_id'],
+        'u_id': str(user_id),
         'token': new_user['token'],
     }
 
+def auth_logout(token):      # pylint: disable=invalid-name
+    '''
+    Given a users token it will search through USER_DATA and invalidate the
+    the token logging the user out
+    '''
 
-def auth_request(email, USER_DATA):       # pylint: disable=invalid-name
+    # -1 means logged-out hence AccessError
+    if token == -1:
+        raise AccessError(description='Invalid token given!')
+
+    else:
+        # Update user_token to -1
+        user = User.find_user_by_attribute('token', token)
+        if user is None:
+            raise AccessError(description='Invalid token given!')
+        User.update_user_attribute('token', token, 'token', -1)
+
+    return {
+        'is_success': True
+        }
+
+def auth_request(email):       # pylint: disable=invalid-name
     '''
     Using the data passed in searches for user, if found will file a password
     request for user and send code to users email
     '''
     # Checks user email is valid and gathers user data
-    if not isValidUser('email', email, USER_DATA):
+    user = User.find_user_by_attribute('email', email)
+    if user is None:
         # This is done so users emails can't be discovered using reset page
         return {}
 
-    user = queryUserData('email', email, USER_DATA)
-
     # Generates a string and sets it as reset code
     reset_code = gen_string()
-    user['reset_code'] = reset_code
+    User.update_user_attribute('email', email, 'reset_code', reset_code)
 
     # Sends email using TLC encryption
     port = 587
@@ -256,7 +193,6 @@ def auth_request(email, USER_DATA):       # pylint: disable=invalid-name
         server.sendmail(sender, email, message)
 
     return {}
-
 
 def auth_reset(reset_code, new_password, USER_DATA):       # pylint: disable=invalid-name
     '''
@@ -281,3 +217,54 @@ def auth_reset(reset_code, new_password, USER_DATA):       # pylint: disable=inv
     usr['reset_code'] = -1
 
     return {}
+
+'''
+########## Helper functions ##########
+'''                                             # pylint: disable=pointless-string-statement
+def hash_string(string):
+    '''
+    Takes in a string and returns the sha256 hash for that string
+    '''
+    return hashlib.sha256(string.encode()).hexdigest()
+
+
+def gen_string():
+    '''
+    Generates a random string, by hashing a large number generated from the
+    random library
+    '''
+    # Uses random to generate a large number
+    token_base = randint(1, 100**100) + (27**100 * randint(-100**100, 100**100))
+
+    return hash_string(str(token_base))
+
+def gen_handle(name_first, name_last):       # pylint: disable=invalid-name
+    '''
+    Generates a handle for the user composed of the lower case first and last
+    name combined. Will only take upto 20 characters then check if taken. If
+    taken it will change the last 5 char to randomly generated number, if it
+    is still taken then it will call itself and redo the process.
+    '''
+    if len(name_first) < 20:
+        handle = name_first.lower()
+    else:
+        handle = name_first.lower()[:20]
+
+    for char in name_last.lower():
+        handle = handle + char
+        if len(handle) >= 20:
+            break
+
+    # TODO: Check if unique handle
+
+    return handle
+
+# def unique_handle(handle, USER_DATA):       # pylint: disable=invalid-name
+#     '''
+#     Checks if a handle is unique or taken
+#     '''
+#     for usr in USER_DATA['users']:
+#         if handle == usr['handle_str']:
+#             return False
+
+#     return True
