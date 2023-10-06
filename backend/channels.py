@@ -20,21 +20,18 @@ def channels_list(token):      # pylint: disable=invalid-name
     user = User.find_user_by_attribute('token', token)
     if user is None:
         raise AccessError('Invalid token!')
-    
+
     channels_db = Channel.get_all_channels()
     channels = {'channels': []}
     for channel in channels_db:
-        print("User id: ", user['_id'])
-        print("Channel members: ", channel['members'])
         for member in channel['members']:
-            if user['_id'] == member['u_id']:
+            if user['u_id'] == member['u_id']:
                 channels['channels'].append({
-                    'channel_id': str(channel['_id']),
+                    'channel_id': str(channel['channel_id']),
                     'name': channel['name']
                 })
                 break
-        
-    print("Channels user is in: ", channels)
+
     return channels
 
 def channels_listall(token):   # pylint: disable=invalid-name
@@ -49,7 +46,7 @@ def channels_listall(token):   # pylint: disable=invalid-name
     channels = {'channels': []}
     for channel in channels_db:
         channels['channels'].append({
-            'channel_id': str(channel['_id']),
+            'channel_id': str(channel['channel_id']),
             'name': channel['name']
         })
 
@@ -69,16 +66,24 @@ def channels_create(token, name, is_public):   # pylint: disable=invalid-name
         raise InputError('Name is more than 20 characters long.')
 
     # Create new channel
+    channel_id = -1
     rank = 1
     num_members = 1
-    members = [{'u_id': user['_id'], 'rank': rank}]
+    members = [{'u_id': user['u_id'], 'rank': rank}]
     standup = {'is_active': 0, 'time_finish': None, 'message': None}
 
     # Insert channel to db
-    channel = Channel(None, name, is_public, num_members, members, standup)
-    channel_id = Channel.insert_one(channel)
+    channel = Channel(None, channel_id, name, is_public, num_members, members, standup)
+    _id = Channel.insert_one(channel)
+    if channel is None:
+        raise InputError('Failed to add channel to database.')
 
-    return {'channel_id': str(channel_id)}
+    # Get channel 
+    channel = Channel.find_channel_by_attribute('_id', _id)
+    if channel is None:
+        raise InputError('Failed to retrieve channel from database.')
+
+    return {'channel_id': str(channel['channel_id'])}
 
 '''
 ########## Helper functions ##########

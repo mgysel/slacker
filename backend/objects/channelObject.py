@@ -18,10 +18,11 @@ import re
 
 class Channel:
     '''
-    User class that contains basic user info/methods
+    Channel class that contains basic channel info/methods
     '''
-    def __init__(self, _id, name, is_public, num_members, members, standup):
+    def __init__(self, _id, channel_id, name, is_public, num_members, members, standup):
         self._id = _id
+        self.channel_id = channel_id
         self.name = name
         self.is_public = is_public
         self.num_members = num_members
@@ -34,18 +35,18 @@ class Channel:
         Channel json object to Channel Object
         '''
         if channel_json != None:
-            properties = ['name', 'is_public', 'num_members', 'members', 'standup']
+            properties = ['channel_id', 'name', 'is_public', 'num_members', 'members', 'standup']
             for prop in properties:
                 if prop not in channel_json:
                     return None
             _id = None
             if '_id' in channel_json:
                 _id = channel_json['_id']
-            return Channel(_id, channel_json['name'], channel_json['is_public'], channel_json['num_members'], channel_json['members'], channel_json['standup'])
+            return Channel(_id, channel_json['channel_id'], channel_json['name'], channel_json['is_public'], channel_json['num_members'], channel_json['members'], channel_json['standup'])
 
     def to_json(self):
         '''
-        User object to json object
+        Channel object to json object
         NOTE: converts ObjectId to string
         '''
         obj = self.__dict__
@@ -64,15 +65,19 @@ class Channel:
         return coll.find()
 
     @staticmethod
-    def insert_one(user):
+    def insert_one(channel):
         '''
         Inserts a channel object into the database
         '''
-        json_obj = user.to_json()
+        json_obj = channel.to_json()
+        print("JSON OBJ: ", json_obj)
         if json_obj != None:
             db = MongoWrapper().client['Peerstr']
             coll = db['channels']
+            # Get channel id 
             try:
+                channel_id = coll.count()
+                json_obj['channel_id'] = channel_id + 1
                 inserted = coll.insert_one(json_obj)
                 return inserted.inserted_id
             except:
@@ -81,8 +86,8 @@ class Channel:
     @classmethod
     def find_channel_by_attribute(cls, attribute, channel_attribute):
         '''
-        Finds a user by a specific attribute
-        Returns user object
+        Finds a channel by a specific attribute
+        Returns channel object
         '''
         db = MongoWrapper().client['Peerstr']
         coll = db['channels']
@@ -93,8 +98,8 @@ class Channel:
     @classmethod
     def update_channel_attribute(cls, query_attribute, query_channel_attribute, attribute, channel_attribute):
         '''
-        Queries for channel by query_attribute = query_user_attribute
-        Updates attribute of user to user_attribute
+        Queries for channel by query_attribute = query_channel_attribute
+        Updates attribute of channel to channel_attribute
         '''
         query = { query_attribute: query_channel_attribute }
         values = { "$set": { attribute: channel_attribute } }
@@ -103,9 +108,9 @@ class Channel:
         coll.update_one(query, values)
 
     @classmethod
-    def push_user_attribute(cls, query_attribute, query_channel_attribute, attribute, channel_attribute):
+    def push_channel_attribute(cls, query_attribute, query_channel_attribute, attribute, channel_attribute):
         '''
-        Queries for user by query_attribute = query_user_attribute
+        Queries for channel by query_attribute = query_channel_attribute
         Appends attribute of channel to channel_attribute
         '''
         query = { query_attribute: query_channel_attribute }

@@ -33,7 +33,6 @@ def auth_login(email, password):     # pylint: disable=invalid-name
 
     # Check Email belongs to a user
     user = User.find_user_by_attribute('email', email)
-    print("User: ", user)
     if user is None:
         raise InputError('Email is Invalid!')
 
@@ -42,7 +41,7 @@ def auth_login(email, password):     # pylint: disable=invalid-name
         raise InputError('Password is Invalid!')
 
     # Get u_id
-    user_id = user['_id']
+    user_id = user['u_id']
 
     # Generate token
     tok = gen_string()
@@ -50,7 +49,7 @@ def auth_login(email, password):     # pylint: disable=invalid-name
     User.update_user_attribute('email', email, 'token', tok)
 
     return {
-        'u_id': str(user_id),
+        'u_id': user_id,
         'token': tok,
     }
 
@@ -66,7 +65,8 @@ def auth_register(email, password, name_first, name_last):       # pylint: disab
         raise InputError(description='Email is invalid!')
 
     # Check if email already used
-    if not User.unused_email(email):
+    user = User.find_user_by_attribute('email', email)
+    if user is not None:
         raise InputError(description='Email is taken!')
 
     # Checks password is < 6 characters
@@ -98,7 +98,7 @@ def auth_register(email, password, name_first, name_last):       # pylint: disab
 
     # Generates dictionary for new users info
     new_user = {}
-
+    new_user['u_id'] = -1
     new_user['email'] = email
     new_user['password'] = hash_string(password)
     new_user['name_first'] = name_first
@@ -110,15 +110,17 @@ def auth_register(email, password, name_first, name_last):       # pylint: disab
     new_user['reset_code'] = -1
 
     # First user has permission_id 1 (owner of slackr) else 2 (regular member)
-    # if new_user['u_id'] == 0:
-    #     new_user['permission_id'] = 1
-    # else:
-    #     new_user['permission_id'] = 2
-    new_user['permission_id'] = 2
+    # Check how many users
+    num_users = User.num_users()
+    if num_users == 0:
+        new_user['permission_id'] = 1
+    else:
+        new_user['permission_id'] = 2
 
     # Add user to database
     user = User(
         None, 
+        new_user['u_id'],
         new_user['email'], 
         new_user['password'], 
         new_user['name_first'], 
@@ -129,13 +131,15 @@ def auth_register(email, password, name_first, name_last):       # pylint: disab
         new_user['reset_code'], 
         new_user['permission_id']
     )
-    user_id = User.insert_one(user)
-    print("AUTH_REGISTER user_id: ", user_id)
+    user = User.insert_one(user)
+    user = User.find_user_by_attribute('email', email)
+    if user is None:
+        raise InputError(description='Failed to add user to database!')
 
     # Returns u_id and token of new user without other data
     return {
-        'u_id': str(user_id),
-        'token': new_user['token'],
+        'u_id': user['u_id'],
+        'token': user['token'],
     }
 
 def auth_logout(token):      # pylint: disable=invalid-name

@@ -44,14 +44,19 @@ function Message({
       })
       .then(({ data }) => {
         const {
-          email = '',
+          email = 'email',
           name_first = '',
           name_last = '',
           handle_str = '',
           profile_img_url = '',
         } = data;
+        console.log("DATA: ", data);
+        console.log("name_first: ", name_first);
+        console.log("name_last: ", name_last);
+        console.log("name_first[0]: ", name_first[0]);
         setName(`${name_first} ${name_last}`);
-        setInitials(`${name_first[0]}${name_last[0]}`);
+        // setInitials(`${name_first[0]}${name_last[0]}`);
+        setInitials(`${name_first}${name_last}`);
         setImgUrl(`${profile_img_url}`)
       })
       .catch((err) => {
@@ -79,7 +84,8 @@ function Message({
                 <>
                   <span>{name}</span>
                   <span style={{ paddingLeft: 10, fontSize: 10 }}>
-                    {timeago(time_created * 1000)}
+                    {time_created}
+                    {/*MJG ADDED: timeago(time_created * 1000)*/}
                   </span>
                 </>
               }

@@ -12,6 +12,9 @@ from error import AccessError, InputError
 from helpers import queryUserData, isValidUser
 from channel import get_channel_data
 from message import message_send
+from objects.userObject import User
+from objects.channelObject import Channel
+from objects.messageObject import Message
 
 '''
 ########## Helper functions ##########
@@ -97,7 +100,6 @@ def send_standup_later(token, length, channel_id, message, \
             USER_DATA, CHANNEL_DATA, MESSAGE_DATA))
     reset_standup(channel_id, CHANNEL_DATA)
 
-
 def standup_start(token, channel_id, length, USER_DATA, CHANNEL_DATA, MESSAGE_DATA):
     '''
     Starts the standup period for channel_id
@@ -124,153 +126,171 @@ def standup_start(token, channel_id, length, USER_DATA, CHANNEL_DATA, MESSAGE_DA
 
     return {'time_finish': time_finish.strftime('%Y %m %d %H %M %S')}
 
-
-def standup_active(token, channel_id, USER_DATA, CHANNEL_DATA):
+def standup_active(token, channel_id):
     '''
     Returns standup information
     InputError when the channel_id is not a valid channel_id
     '''
-    if isValidUser('token', token, USER_DATA):
-        if not is_valid_channel(channel_id, CHANNEL_DATA):
-            raise InputError(f'{channel_id} is not a valid channel')
-        else:
-            channel_data = get_channel_data(channel_id, CHANNEL_DATA)['standup']
-            channel_data_time = channel_data['time_finish']
-            time_finish = None
-            if not channel_data_time is None:
-                time_finish = channel_data_time.strftime('%Y %m %d %H %M %S')
-            is_active = channel_data['is_active']
+    # Check if valid user
+    user = User.find_user_by_attribute('token', token)
+    if user is None:
+        raise AccessError('Invalid token!')
+    
+    # Check if valid channel
+    channel = Channel.find_channel_by_attribute('channel_id', channel_id)
+    if channel is None:
+        raise InputError('Invalid channel ID!')
+    print("CHANNEL: ", channel)
+    channel_data_time = channel['standup']['time_finish']
+    time_finish = None
+    if channel_data_time is not None:
+        time_finish = channel_data_time.strftime('%Y %m %d %H %M %S')
+    is_active = channel['standup']['is_active']
     return {'is_active': is_active, 'time_finish': time_finish}
 
-def standup_send(token, channel_id, message, USER_DATA, CHANNEL_DATA):
+def standup_send(token, channel_id, message):
     '''
     Sends a message to the standup queue
     InputError when the channel_id or message not valid, standup in session
     AccessError when authorised user not a member of the channel
     '''
-    if isValidUser('token', token, USER_DATA):
-        if not is_valid_channel(channel_id, CHANNEL_DATA):
-            raise InputError(f'{channel_id} is not a valid channel')
-        elif not is_standup_in_session(channel_id, CHANNEL_DATA):
-            raise InputError(f'An active standup is not currently running in \
-                this channel')
-        elif not is_message_valid(message):
-            raise InputError('Message is more than 1,000 characters')
-        elif not is_user_in_channel(token, channel_id, CHANNEL_DATA, USER_DATA):
-            raise AccessError('The authorised user is not a member of the '
-                              'channel that the message is within')
-    else:
-        # Send standup message
-        this_channel = get_channel_data(channel_id, CHANNEL_DATA)
-        first_name = queryUserData('token', token, USER_DATA)['name_first']
-        new_message = f"{first_name} {message} \n"
-        if not this_channel['standup']['message'] is None:
-            new_message = this_channel['standup']['message'] + new_message
-        update_standup_key(channel_id, 'message', new_message, CHANNEL_DATA)
+    # Check if valid user
+    user = User.find_user_by_attribute('token', token)
+    if user is None:
+        raise AccessError('Invalid token!')
+    
+    # Check if valid channel
+    channel = Channel.find_channel_by_attribute('channel_id', channel_id)
+    if channel is None:
+        raise InputError('Invalid channel ID!')
+    
+    # Check if standup is in session
+    if not channel['is_active']:
+        raise InputError('An active standup is not currently running in this channel')
+    
+    # Check if message is valid
+    if not is_message_valid(message):
+        raise InputError('Message is more than 1,000 characters')
+    
+    # Check if user is in channel
+    is_member = False
+    for member in channel['members']:
+        if member['u_id'] == user.u_id:
+            is_member = True
+            break
+    if not is_member:
+        raise AccessError('The authorised user is not a member of the channel that the message is within')
+
+    # Send standup message
+    new_message = f"{user['first_name']} {message} \n"
+    channel_standup = channel['standup']
+    if channel_standup['message'] is not None:
+        new_message = channel_standup['message'] + new_message
+    Channel.update_channel_attribute('channel_id', channel_id, 'standup', {'is_active': channel_standup['is_active'], 'time_finish': channel_standup['time_finish'], 'message': new_message})
+
     return {}
 
-
-def search(token, query_str, USER_DATA, MESSAGE_DATA):
+def search(token, query_str):
     '''
-    returns a list of all messages sent by user in cronological order
+    returns a list of all messages sent by user in chronological order
     assuming list of messages is kept in most recent first
     '''
-    message_list = {'message':[]}
-    result = queryUserData('token', token, USER_DATA)
-    u_id = result['u_id'] 
-    for chan in MESSAGE_DATA['channels']:
-        for me in chan['messages']:
-            if me['u_id'] == u_id:
-                if query_str in me['message']:
-                    message_list['message'].append({
-                        'message' : me['message'],
-                    })
-    return message_list
+    user = User.find_user_by_attribute('token', token)
+    if user is None:
+        raise AccessError('Invalid token!')
+    
+    messages = Message.find_messages_by_attribute('u_id', user['u_id'])
+    messages_list = []
+    for m in messages:
+        print("QUERY STR: ", query_str)
+        print("MESSAGE: ", m['message'])
+        print("QUERY STR IN MESSAGE?: ", query_str.lower() in m['message'].lower())
+        if query_str.lower() in m['message'].lower():
+            print("M BEFORE: ", m)
+            del m['_id']
+            print("M AFTER: ", m)
+            messages_list.append(m)
 
-def usersAll(token, USER_DATA):     # pylint: disable=invalid-name
+    print("MESSAGES LIST: ", messages_list)
+    return messages_list
+
+def usersAll(token):     # pylint: disable=invalid-name
     '''
     Returns a list of all users and their associated details.
     '''
-    if isValidUser('token', token, USER_DATA):
-        all_users = {'users': []}
-
-        # Removes sensitive data before returning
-        for usr in USER_DATA['users']:
-            if usr['email'] == '':
-                continue
-
-            # Ensures only relavant data is passed on
-            all_users['users'].append({'u_id': usr['u_id'],
-                                       'email': usr['email'],
-                                       'name_first': usr['name_first'],
-                                       'name_last': usr['name_last'],
-                                       'handle_str': usr['handle_str']
-                                       })
-
-    else:
+    # Check if valid user
+    user = User.find_user_by_attribute('token', token)
+    if user is None:
         raise AccessError('Invalid token!')
+    
+    all_users = {'users': []}
+    users = User.get_all_users()
+
+    # Removes sensitive data before returning
+    for user in users:
+        all_users['users'].append({
+            'name_first': user.name_first,
+            'name_last': user.name_last,
+            'handle_str': user.handle_str
+        })
 
     return all_users
 
-
-def admin_userpermission_change(token, u_id, permission_id, USER_DATA):     # pylint: disable=invalid-name
+def admin_userpermission_change(token, u_id, permission_id):     # pylint: disable=invalid-name
     '''
     Allows a owner to change the permission_id of other users, making them
     owners or regular members
     '''
     # Checks token and u_id are valid
-    if not isValidUser('token', token, USER_DATA):
+    user1 = User.find_user_by_attribute('token', token)
+    if user1 is None:
         raise AccessError(description='Invalid token!')
-
-    if not isValidUser('u_id', u_id, USER_DATA):
+    if user1['permission_id'] != 1:
+        raise AccessError(description='Unauthorised user!')
+    
+    user2 = User.find_user_by_attribute('u_id', u_id)
+    if user2 is None:
         raise InputError(description='Invalid user ID!')
 
     # Checks permission_id is valid and usr1 is authorised
     if permission_id < 1 or permission_id > 2:
         raise InputError(description='Invalid permission ID!')
 
-    usr1 = queryUserData('token', token, USER_DATA)
-    if usr1['permission_id'] != 1:
-        raise AccessError(description='Unauthorised user!')
-
     # Collects and adjusts usr2 of u_id's permission_id
-    usr2 = queryUserData('u_id', u_id, USER_DATA)
-    usr2['permission_id'] = permission_id
+    User.update_user_attribute('u_id', u_id, 'permission_id', permission_id)
 
     return{}
 
-
-def admin_user_remove(token, u_id, USER_DATA):      # pylint: disable=invalid-name
+def admin_user_remove(token, u_id):      # pylint: disable=invalid-name
     '''
     Allows a owner to delete a user. The deleted user will have its email and
     password remove along with its name and handle changed to 'Deleted' but its
     messages will still be visible
     '''
     # Checks token and u_id are valid
-    if not isValidUser('token', token, USER_DATA):
+    user1 = User.find_user_by_attribute('token', token)
+    if user1 is None:
         raise AccessError(description='Invalid token!')
-
-    if not isValidUser('u_id', u_id, USER_DATA):
+    
+    user2 = User.find_user_by_attribute('u_id', u_id)
+    if user2 is None:
         raise InputError(description='Invalid user ID!')
 
-    # Checks user hasn't already been deleted
-    usr2 = queryUserData('u_id', u_id, USER_DATA)
-    if usr2['password'] == '' and usr2['email'] == '':
-        raise InputError(description='Invalid user ID!')
-
-    # Checks usr1 is authorised
-    usr1 = queryUserData('token', token, USER_DATA)
-    if usr1['permission_id'] != 1:
+    # Checks user1 is authorised
+    if user1['permission_id'] != 1:
         raise AccessError(description='Unauthorised user!')
+    
+    user_attribute_updates = {
+        'email': '',
+        'password': '',
+        'token': -1,
+        'reset_code': -1,
+        'permission_id': 0,
+        'name_first': '[deleted]',
+        'name_last': '',
+        'handle_str': '[deleted]'
+    }
 
-    # Changes usr2's details
-    usr2['email'] = ''
-    usr2['password'] = ''
-    usr2['token'] = -1
-    usr2['reset_code'] = -1
-    usr2['permission_id'] = 0
-    usr2['name_first'] = '[deleted]'
-    usr2['name_last'] = ''
-    usr2['handle_str'] = '[deleted]'
+    User.update_user_attributes('u_id', u_id, user_attribute_updates)
 
     return {}

@@ -21,7 +21,7 @@ from auth import auth_register, auth_login, auth_logout, \
 auth_request, auth_reset
 from user import user_profile, user_profile_setname, \
 user_profile_setemail, user_profile_sethandle, \
-user_profile_upload_photo, userfromtoken
+user_profile_upload_photo
 from channels import channels_list, channels_listall, channels_create
 from channel import channel_invite, channel_details, \
 channel_messages, channel_leave, channel_join, \
@@ -30,7 +30,7 @@ from message import message_send, message_remove, \
 message_edit, message_sendlater, message_react, \
 message_unreact, message_pin, message_unpin, hangman
 from other import standup_active, standup_start, usersAll, \
-standup_send, admin_userpermission_change, admin_user_remove
+standup_send, admin_userpermission_change, admin_user_remove, search
 import jwt
 
 from objects.userObject import User
@@ -164,7 +164,7 @@ def user_info():
     token = request.args['token']
     u_id = int(request.args['u_id'])
 
-    result = user_profile(token, u_id, USER_DATA)
+    result = user_profile(token, u_id)
 
     return dumps(result)
 
@@ -178,7 +178,7 @@ def user_change_name():
 
     result = user_profile_setname(req_data['token'], \
                                 req_data['name_first'], \
-                                req_data['name_last'], USER_DATA)
+                                req_data['name_last'])
 
     return dumps(result)
 
@@ -191,7 +191,7 @@ def user_change_email():
     req_data = request.get_json()
 
     result = user_profile_setemail(req_data['token'], \
-                                req_data['email'], USER_DATA)
+                                req_data['email'])
 
     return dumps(result)
 
@@ -204,7 +204,7 @@ def user_change_handle():
     req_data = request.get_json()
 
     result = user_profile_sethandle(req_data['token'], \
-                                req_data['handle_str'], USER_DATA)
+                                req_data['handle_str'])
 
     return dumps(result)
 
@@ -218,7 +218,7 @@ def user_upload_photo():
 
     result = user_profile_upload_photo(req_data['token'], \
         req_data['img_url'], req_data['x_start'], req_data['y_start'], \
-        req_data['x_end'], req_data['y_end'], USER_DATA)
+        req_data['x_end'], req_data['y_end'])
 
     return dumps(result)
 
@@ -273,10 +273,9 @@ def invite_to_channel():
     req_data = request.get_json()
 
     result = channel_invite(req_data['token'], int(req_data['channel_id']), \
-    int(req_data['u_id']), CHANNEL_DATA, USER_DATA)
+    int(req_data['u_id']))
 
     return dumps(result)
-
 
 @APP.route('/channel/details', methods=['GET'])
 def details_channel():
@@ -286,11 +285,9 @@ def details_channel():
     token = request.args['token']
     channel_id = int(request.args['channel_id'])
 
-    result = channel_details(token, channel_id, \
-    CHANNEL_DATA, USER_DATA)
+    result = channel_details(token, channel_id)
 
     return dumps(result)
-
 
 @APP.route('/channel/messages', methods=['GET'])
 def messages_channel():
@@ -301,11 +298,9 @@ def messages_channel():
     channel_id = int(request.args['channel_id'])
     start = int(request.args['start'])
 
-    result = channel_messages(token, channel_id, \
-    start, CHANNEL_DATA, MESSAGE_DATA, USER_DATA)
+    result = channel_messages(token, channel_id, start)
 
     return dumps(result)
-
 
 @APP.route('/channel/leave', methods=['POST'])
 def leave_channel():
@@ -314,11 +309,9 @@ def leave_channel():
     '''
     req_data = request.get_json()
 
-    channel_leave(req_data['token'], int(req_data['channel_id']), \
-    CHANNEL_DATA, USER_DATA)
+    channel_leave(req_data['token'], int(req_data['channel_id']))
 
     return dumps({})
-
 
 @APP.route('/channel/join', methods=['POST'])
 def join_channel():
@@ -327,11 +320,9 @@ def join_channel():
     '''
     req_data = request.get_json()
 
-    channel_join(req_data['token'], int(req_data['channel_id']), \
-    CHANNEL_DATA, USER_DATA)
+    channel_join(req_data['token'], int(req_data['channel_id']))
 
     return dumps({})
-
 
 @APP.route('/channel/addowner', methods=['POST'])
 def addowner():
@@ -341,10 +332,9 @@ def addowner():
     req_data = request.get_json()
 
     channel_addowner(req_data['token'], int(req_data['channel_id']), \
-    int(req_data['u_id']), CHANNEL_DATA, USER_DATA)
+    int(req_data['u_id']))
 
     return dumps({})
-
 
 @APP.route('/channel/removeowner', methods=['POST'])
 def removeowner():
@@ -354,10 +344,9 @@ def removeowner():
     req_data = request.get_json()
 
     channel_removeowner(req_data['token'], int(req_data['channel_id']), \
-    int(req_data['u_id']), CHANNEL_DATA, USER_DATA)
+    int(req_data['u_id']))
 
     return dumps({})
-
 
 '''
 ######### message.py routes #########
@@ -370,7 +359,7 @@ def send_message():
     req_data = request.get_json()
 
     result = message_send(req_data['token'], int(req_data['channel_id']), \
-    req_data['message'], USER_DATA, CHANNEL_DATA, MESSAGE_DATA, HANGMAN_DATA)
+    req_data['message'])
 
     return dumps(result)
 
@@ -380,8 +369,7 @@ def remove_message():
     Sends a message at a specified time
     '''
     req_data = request.get_json()
-    result = message_remove(req_data['token'], int(req_data['message_id']), \
-    USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    result = message_remove(req_data['token'], int(req_data['message_id']))
     return dumps(result)
 
 @APP.route('/message/edit', methods=['PUT'])
@@ -391,7 +379,7 @@ def edit_message():
     '''
     req_data = request.get_json()
     result = message_edit(req_data['token'], int(req_data['message_id']), \
-    req_data['message'], USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    req_data['message'])
     return dumps(result)
 
 @APP.route('/message/sendlater', methods=['POST'])
@@ -402,8 +390,7 @@ def sendlater_message():
     req_data = request.get_json()
 
     message_sendlater(int(req_data['u_id']), int(req_data['channel_id']), \
-    req_data['message'], req_data['time_sent'], USER_DATA, \
-    CHANNEL_DATA, MESSAGE_DATA)
+    req_data['message'], req_data['time_sent'])
 
     return dumps({})
 
@@ -414,7 +401,7 @@ def react_message():
     '''
     req_data = request.get_json()
     result = message_react(req_data['token'], int(req_data['message_id']), \
-    int(req_data['react_id']), USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    int(req_data['react_id']))
     return dumps(result)
 
 @APP.route('/message/unreact', methods=['POST'])
@@ -424,7 +411,7 @@ def unreact_message():
     '''
     req_data = request.get_json()
     result = message_unreact(req_data['token'], int(req_data['message_id']), \
-    int(req_data['react_id']), USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    int(req_data['react_id']))
     return dumps(result)
 
 @APP.route('/message/pin', methods=['POST'])
@@ -433,8 +420,7 @@ def pin_message():
     Mark message as pinned
     '''
     req_data = request.get_json()
-    result = message_pin(req_data['token'], int(req_data['message_id']), \
-    USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    result = message_pin(req_data['token'], int(req_data['message_id']))
     return dumps(result)
 
 @APP.route('/message/unpin', methods=['POST'])
@@ -443,8 +429,7 @@ def unpin_message():
     Mark message as unpinned
     '''
     req_data = request.get_json()
-    result = message_unpin(req_data['token'], int(req_data['message_id']), \
-    USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    result = message_unpin(req_data['token'], int(req_data['message_id']))
     return dumps(result)
 
 '''
@@ -459,8 +444,7 @@ def active_standup():
     token = request.args['token']
     channel_id = int(request.args['channel_id'])
 
-    result = standup_active(token, channel_id, \
-    USER_DATA, CHANNEL_DATA)
+    result = standup_active(token, channel_id)
 
     return dumps(result)
 
@@ -473,9 +457,8 @@ def start_standup():
     req_data = request.get_json()
 
     result = standup_start(req_data['token'], int(req_data['channel_id']), \
-    req_data['length'], USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    req_data['length'])
     return dumps(result)
-
 
 @APP.route('/standup/send', methods=['POST'])
 def send_standup():
@@ -489,7 +472,6 @@ def send_standup():
 
     return dumps({})
 
-
 @APP.route('/users/all', methods=['GET'])
 def user_list_all():
     '''
@@ -497,10 +479,21 @@ def user_list_all():
     '''
     token = request.args['token']
 
-    result = usersAll(token, USER_DATA)
+    result = usersAll(token)
 
     return dumps(result)
 
+@APP.route('/search', methods=['GET'])
+def route_search():
+    '''
+    Collects and returns info on all users
+    '''
+    token = request.args['token']
+    query_str = request.args['query_str']
+
+    result = search(token, query_str)
+
+    return dumps(result)
 
 @APP.route('/admin/userpermission/change', methods=['POST'])
 def admin_permission_change():
@@ -510,10 +503,9 @@ def admin_permission_change():
     req_data = request.get_json()
 
     result = admin_userpermission_change(req_data['token'], \
-    int(req_data['u_id']), int(req_data['permission_id']), USER_DATA)
+    int(req_data['u_id']), int(req_data['permission_id']))
 
     return dumps(result)
-
 
 @APP.route('/admin/user/remove', methods=['DELETE'])
 def admin_delete_user():
@@ -523,7 +515,7 @@ def admin_delete_user():
     req_data = request.get_json()
 
     result = admin_user_remove(req_data['token'], \
-                int(req_data['u_id']), USER_DATA)
+                int(req_data['u_id']))
 
     return dumps(result)
 

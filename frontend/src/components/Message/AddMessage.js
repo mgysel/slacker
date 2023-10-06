@@ -145,18 +145,19 @@ function AddMessage({ channel_id = '' }) {
     }
   }, 1000);
 
-  useInterval(() => {
-    if (standupRemaining > 0) return;
-    axios
-    .get('/standup/active', { params: { token, channel_id } })
-      .then(({ data }) => {
-        const { is_active = false, time_finish } = data;
-        if (is_active && time_finish) {
-          setStandupEndTime(time_finish);
-        }
-      })
-      .catch((err) => {});
-  }, 2000);
+  // MJG: COMMENTED OUT
+  // useInterval(() => {
+  //   if (standupRemaining > 0) return;
+  //   axios
+  //   .get('/standup/active', { params: { token, channel_id } })
+  //     .then(({ data }) => {
+  //       const { is_active = false, time_finish } = data;
+  //       if (is_active && time_finish) {
+  //         setStandupEndTime(time_finish);
+  //       }
+  //     })
+  //     .catch((err) => {});
+  // }, 2000);
 
   const keyDown = (e) => {
     if (e.key === 'Enter' && !e.getModifierState('Shift')) {

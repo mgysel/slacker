@@ -20,8 +20,9 @@ class User:
     '''
     User class that contains basic user info/methods
     '''
-    def __init__(self, _id, email, password, name_first, name_last, handle_str, profile_img_url, token, reset_code, permission_id):
+    def __init__(self, _id, u_id, email, password, name_first, name_last, handle_str, profile_img_url, token, reset_code, permission_id):
         self._id = _id
+        self.u_id = u_id
         self.email = email
         self.password = password
         self.name_first = name_first
@@ -38,14 +39,14 @@ class User:
         User json object to User Object
         '''
         if user_json != None:
-            properties = ['email', 'password', 'first_name', 'last_name', 'payment_methods', 'shipping_address', 'spotify_id', 'cart', 'role', 'reset_code']
+            properties = ['u_id', 'email', 'password', 'name_first', 'name_last', 'handle_str', 'profile_img_url', 'token', 'reset_code', 'permission_id']
             for prop in properties:
                 if prop not in user_json:
                     return None
             _id = None
             if '_id' in user_json:
                 _id = user_json['_id']
-            return User(_id, user_json['email'], user_json['password'], user_json['first_name'], user_json['last_name'], user_json['payment_methods'], user_json['shipping_address'], user_json['spotify_id'], user_json['cart'], user_json['role'], user_json['reset_code'])
+            return User(_id, user_json['u_id'], user_json['email'], user_json['password'], user_json['name_first'], user_json['name_last'], user_json['handle_str'], user_json['profile_img_url'], user_json['token'], user_json['reset_code'], user_json['permission_id'])
 
     def to_json(self):
         '''
@@ -59,7 +60,7 @@ class User:
             obj['_id'] = str(obj['_id'])
         return obj
 
-    def get_all_users(self):
+    def get_all_users():
         '''
         Returns list of User objects from the database
         '''
@@ -80,34 +81,18 @@ class User:
         if json_obj != None:
             db = MongoWrapper().client['Peerstr']
             coll = db['users']
+            # Get total number of items, update u_id
+            try:
+                total = coll.count()
+                json_obj['u_id'] = total + 1
+            except:
+                return None
+            # Insert into database
             try:
                 inserted = coll.insert_one(json_obj)
                 return inserted.inserted_id
             except:
                 return None
-
-    @staticmethod
-    def get_cart_product_quantity(userId, product_id):
-        '''
-        Gets current stock of a product in user's cart
-        '''
-        # Find user
-        db = MongoWrapper().client['Peerstr']
-        coll = db['users']
-
-        user_json = coll.find_one({ '_id': userId })
-        
-        cart_product_quantity = 0
-
-        if user_json:
-            user_cart = user_json['cart']
-            for item in user_cart:
-                if item['product_id'] == product_id:
-                    print(f"ITEM QUANTITY: {item['quantity']}")
-                    print(f"TYPE: {type(item['quantity'])}")
-                    cart_product_quantity += item['quantity']
-
-        return cart_product_quantity
 
     @classmethod
     def find_user_by_attribute(cls, attribute, user_attribute):
@@ -140,7 +125,7 @@ class User:
 
         db = MongoWrapper().client['Peerstr']
         coll = db['users']
-        results = coll.find(filter=filter,skip=skip,limit=limit).collation({'locale':'en'}).sort([('first_name',1),('last_name',1)])
+        results = coll.find(filter=filter,skip=skip,limit=limit).collation({'locale':'en'}).sort([('email',1),('first_name',1),('last_name',1)])
 
         return [User.from_json(x) for x in results]
 
@@ -152,6 +137,18 @@ class User:
         '''
         query = { query_attribute: query_user_attribute }
         values = { "$set": { attribute: user_attribute } }
+        db = MongoWrapper().client['Peerstr']
+        coll = db['users']
+        coll.update_one(query, values)
+
+    @classmethod
+    def update_user_attributes(cls, query_attribute, query_user_attribute, user_attributes):
+        '''
+        Queries for user by query_attribute = query_user_attribute
+        Updates attribute of user to user_attribute
+        '''
+        query = { query_attribute: query_user_attribute }
+        values = { "$set": { user_attributes } }
         db = MongoWrapper().client['Peerstr']
         coll = db['users']
         coll.update_one(query, values)
@@ -179,6 +176,17 @@ class User:
         db = MongoWrapper().client['Peerstr']
         coll = db['users']
         coll.update_one(query, values)
+
+    @classmethod
+    def num_users(cls):
+        db = MongoWrapper().client['Peerstr']
+        coll = db['users']
+        # Get total number of items, update u_id
+        try:
+            total = coll.count()
+            return total
+        except:
+            return 0
 
     ########## Checking user validity ##########
     @classmethod
@@ -215,6 +223,7 @@ class User:
         Checks that confirm password is not None
         '''
         return confirm_password is not None and password == confirm_password
+    
     @classmethod
     def valid_name(cls, name):
         '''
@@ -234,7 +243,7 @@ class User:
         Determines if user object is valid
         Returns True if valid, False otherwise
         '''
-        attributes = ['_id', 'email', 'password', 'first_name', 'last_name', 'payment_methods', 'shipping_address', 'spotify_id', 'cart', 'role', 'reset_code']
+        attributes = ['_id', 'u_id', 'email', 'password', 'first_name', 'last_name', 'payment_methods', 'shipping_address', 'spotify_id', 'cart', 'role', 'reset_code']
         for attribute in attributes:
             if not hasattr(user, attribute):
                 return False

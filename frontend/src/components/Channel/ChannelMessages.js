@@ -18,6 +18,8 @@ function ChannelMessages({ channel_id = '' }) {
   const [currentStart, setCurrentStart] = React.useState(0);
   const token = React.useContext(AuthContext);
 
+  console.log("INSIDE CHANNEL MESSAGES");
+
   const fetchChannelMessages = () => axios
   .get('/channel/messages', {
     params: {
@@ -27,11 +29,15 @@ function ChannelMessages({ channel_id = '' }) {
     },
   })
   .then(({ data }) => {
+    console.log("FETCH CHANNEL MESSAGES: ");
+    console.log(data);
     const { messages: newMessages, start, end } = data;
     setCurrentStart(end); // TODO: add/remove problems
     setMessages(messages.concat(newMessages));
   })
-  .catch((err) => {});
+  .catch((err) => {
+    console.log("ERROR FETCH CHANNEL MESSAGES");
+  });
 
   const resetChannelMessages = () => axios
   .get('/channel/messages', {
@@ -42,11 +48,14 @@ function ChannelMessages({ channel_id = '' }) {
     },
   })
   .then(({ data }) => {
+    console.log("Get messages success: ", data)
     const { messages: newMessages, start, end } = data;
     setCurrentStart(end); // TODO: add/remove problems
     setMessages(newMessages);
   })
-  .catch((err) => {});
+  .catch((err) => {
+    console.log("Get messages error: ", err)
+  });
 
   React.useEffect(() => {
     resetChannelMessages();
