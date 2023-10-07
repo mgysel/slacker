@@ -30,6 +30,7 @@ function Channel({ channel_id, ...props }) {
   const u_id = extractUId(token);
 
   function fetchChannelData() {
+    console.log("INSIDE FETCH CHANNEL DATA");
     axios
       .get('/channel/details', {
         params: {
@@ -38,13 +39,16 @@ function Channel({ channel_id, ...props }) {
         },
       })
       .then(({ data }) => {
+        console.log("Channel detail data: ", data);
         const { name, owner_members, all_members } = data;
         // assumes members of form [{ u_id, name_first, name_last }]
         setMembers(all_members);
         setOwners(owner_members);
         setName(name);
       })
-      .catch((err) => {});
+      .catch((err) => {
+        console.log("ERROR GETTING CHANNEL DETAILS")
+      });
   }
 
   React.useEffect(() => {

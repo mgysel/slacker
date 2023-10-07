@@ -28,7 +28,7 @@ channel_messages, channel_leave, channel_join, \
 channel_addowner, channel_removeowner
 from message import message_send, message_remove, \
 message_edit, message_sendlater, message_react, \
-message_unreact, message_pin, message_unpin, hangman
+message_unreact, message_pin, message_unpin
 from other import standup_active, standup_start, usersAll, \
 standup_send, admin_userpermission_change, admin_user_remove, search
 import jwt
@@ -493,6 +493,7 @@ def admin_permission_change():
     Changes a users permission_id
     '''
     req_data = request.get_json()
+    print("REQ DATA: ", req_data)
 
     result = admin_userpermission_change(req_data['token'], \
     int(req_data['u_id']), int(req_data['permission_id']))

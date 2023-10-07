@@ -175,7 +175,9 @@ def search(token, query_str):
             messages_list.append(m)
 
     print("MESSAGES LIST: ", messages_list)
-    return messages_list
+    return {
+        'messages': messages_list
+    }
 
 def usersAll(token):     # pylint: disable=invalid-name
     '''
@@ -192,9 +194,12 @@ def usersAll(token):     # pylint: disable=invalid-name
     # Removes sensitive data before returning
     for user in users:
         all_users['users'].append({
+            'u_id': user.u_id,
             'name_first': user.name_first,
             'name_last': user.name_last,
-            'handle_str': user.handle_str
+            'handle_str': user.handle_str,
+            'profile_img_url': user.profile_img_url,
+            'permission_id': user.permission_id,
         })
 
     return all_users
@@ -216,7 +221,7 @@ def admin_userpermission_change(token, u_id, permission_id):     # pylint: disab
         raise InputError(description='Invalid user ID!')
 
     # Checks permission_id is valid and usr1 is authorised
-    if permission_id < 1 or permission_id > 2:
+    if permission_id < 1 or permission_id > 3:
         raise InputError(description='Invalid permission ID!')
 
     # Collects and adjusts usr2 of u_id's permission_id

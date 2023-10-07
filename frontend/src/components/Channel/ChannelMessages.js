@@ -29,6 +29,7 @@ function ChannelMessages({ channel_id = '' }) {
   .then(({ data }) => {
     const { messages: newMessages, start, end } = data;
     setCurrentStart(end); // TODO: add/remove problems
+    console.log("NEW MESSAGES: ", newMessages);
     setMessages(messages.concat(newMessages));
   })
   .catch(() => {

@@ -89,18 +89,17 @@ def channel_details(token, channel_id):    # pylint: disable=invalid-name
             continue
 
         # Looks for owners to add to owner_members
-        
-        user = User.find_user_by_attribute('u_id', member['u_id'])
         mem_details = {
             'u_id': user['u_id'],
             'name_first': user['name_first'],
-            'name_last': user['name_last']
+            'name_last': user['name_last'],
+            'profile_img_url': user['profile_img_url']
         }
         if member['rank']:
             details['owner_members'].append(mem_details)
-        else:
-            details['all_members'].append(mem_details)
+        details['all_members'].append(mem_details)
 
+    print("Channel details returning: ", details)
     return details
 
 def channel_messages(token, channel_id, start):      # pylint: disable=invalid-name, too-many-arguments, too-many-branches
@@ -173,6 +172,9 @@ def channel_messages(token, channel_id, start):      # pylint: disable=invalid-n
                     react['is_this_user_reacted'] = False
             msgs['messages'].append(message)
 
+    print("Messages: ", msgs['messages'])
+
+    msgs['messages'] = sorted(msgs['messages'], key=lambda h: (h['is_pinned'], h['time_created']))
     return msgs
 
 def channel_leave(token, channel_id):      # pylint: disable=invalid-name
@@ -268,15 +270,15 @@ def channel_addowner(token, channel_id, u_id):     # pylint: disable=invalid-nam
                 break
             else:
                 member['rank'] = 1
-                break
-
+                Channel.update_channel_attribute('channel_id', channel_id, 'members', channel['members'])
+                return {}
+    
     if is_owner:
         raise InputError(description='User is already a owner of channel!')
 
     # If user isn't a member then adds them to channel as owner
     new_member = {'u_id': user['u_id'], 'rank': 1}
-    if new_member not in channel['members']:
-        Channel.push_channel_attribute('channel_id', channel_id, 'members', new_member)
+    Channel.push_channel_attribute('channel_id', channel_id, 'members', new_member)
 
     return {}
 
@@ -289,6 +291,10 @@ def channel_removeowner(token, channel_id, u_id):      # pylint: disable=invalid
     user = User.find_user_by_attribute('token', token)
     if user is None:
         raise AccessError(description='Invalid token!')
+    
+    user2 = User.find_user_by_attribute('u_id', u_id)
+    if user2 is None:
+        raise InputError(description='Invalid user ID!')
     
     channel = Channel.find_channel_by_attribute('channel_id', channel_id)
     if channel is None:
@@ -310,7 +316,7 @@ def channel_removeowner(token, channel_id, u_id):      # pylint: disable=invalid
         if u_id == member['u_id']:
             if member['rank']:
                 owner_user = True
-                if user['permission_id'] == 1:
+                if user2['permission_id'] == 1:
                     raise AccessError(description='Owners of slackr can not be demoted!')
                 # Demotes user to regular member
                 member['rank'] = 0

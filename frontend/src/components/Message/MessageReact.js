@@ -22,8 +22,6 @@ function MessageReact({
   step = step ? step : () => {}; // sanity check
 
   const messageReact = (is_reacted) => {
-    console.log("IS REACTED: ", is_reacted);
-    console.log("MEssage id: ", message_id)
     if (is_reacted) {
       axios.post(`/message/unreact`, {
         token,

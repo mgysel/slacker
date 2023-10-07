@@ -25,7 +25,10 @@ function Search({ query_str, ...props }) {
             },
         })
         .then(({ data }) => {
+            console.log("Data: ", data)
             const { messages } = data;
+            console.log("INSIDE SEARCH")
+            console.log("MESSAGES: ", messages)
             if (typeof messages === "undefined" || !Array.isArray(messages)) return;
             setMessages(messages)
             setLoading(false);

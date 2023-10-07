@@ -14,207 +14,6 @@ from objects.channelObject import Channel
 from objects.userObject import User
 from objects.messageObject import Message
 
-
-def hangman(token, channel_id, message, USER_DATA, CHANNEL_DATA, MESSAGE_DATA, HANGMAN_DATA):
-
-    HANGMAN = [
-    """
-    _________
-        |/        
-        |              
-        |                
-        |                 
-        |               
-        |                   
-        |___                 
-        """,
-
-    """
-    _________
-        |/   |      
-        |              
-        |                
-        |                 
-        |               
-        |                   
-        |___                 
-        H""",
-
-    """
-    _________       
-        |/   |              
-        |   (_)
-        |                         
-        |                       
-        |                         
-        |                          
-        |___                       
-        HA""",
-
-    """
-    ________               
-        |/   |                   
-        |   (_)                  
-        |    |                     
-        |    |                    
-        |                           
-        |                            
-        |___                    
-        HAN""",
-
-    """
-    _________             
-        |/   |               
-        |   (_)                   
-        |   /|                     
-        |    |                    
-        |                        
-        |                          
-        |___                          
-        HANG""",
-
-    """
-    _________              
-        |/   |                     
-        |   (_)                     
-        |   /|\                    
-        |    |                       
-        |                             
-        |                            
-        |___                          
-        HANGM""",
-
-    """
-    ________                   
-        |/   |                         
-        |   (_)                      
-        |   /|\                             
-        |    |                          
-        |   /                            
-        |                                  
-        |___                              
-        HANGMA""",
-
-    """
-    ________
-        |/   |     
-        |   (_)    
-        |   /|\           
-        |    |        
-        |   / \        
-        |               
-        |___           
-        HANGMAN"""]
-
-    # If command is /hangman
-    if message == "/hangman":
-
-        channelexists_flag = 0
-        for x in HANGMAN_DATA['channels']:
-            if x['channel_id'] == channel_id:
-                channelexists_flag = 1
-                break
-
-        # If the game has not yet started
-        if channelexists_flag == 0:
-            new_game = {
-                'channel_id': channel_id,
-                'word': "",
-                'guessed_word': "",
-                'wrong': 0,
-                'guesses': [],
-            }
-            HANGMAN_DATA['channels'].append(new_game)
-
-        # Setting up a new game
-        for x in HANGMAN_DATA['channels']:
-            if x['channel_id'] == channel_id:
-                # Set up game 
-                if x['wrong'] == 0: 
-                    r = RandomWords()
-                    WORD = r.get_random_word(hasDictionaryDef="true", minLength=6)
-                    WORD = WORD.upper()
-                    x['word'] = WORD
-                    x['guessed_word'] = "_ " * len(WORD)
-                    x['wrong'] = 0
-                    x['guesses'] = []
-                    message_send(token, channel_id, "++++++++++ START OF ROUND ++++++++++")
-                    message = HANGMAN[0]
-                    message_send(token, channel_id, message)
-                    message_send(token, channel_id, "Word is {}".format(x['guessed_word']))
-                    message_send(token, channel_id, "You have used 0/7 Guesses")
-                    message_send(token, channel_id, "To guess enter: '/guess X'")
-                else: 
-                    message_send(token, channel_id, "Game in progress. To guess enter: '/guess X'")
-        
-    if message.startswith("/guess") is True:
-        
-        channelexists_flag = 0
-        for x in HANGMAN_DATA['channels']:
-            if x['channel_id'] == channel_id:
-                channelexists_flag = 1
-                break
-
-        # If the game has not yet started
-        if channelexists_flag == 0:
-            message_send(token, channel_id, "You have not yet started a game. To start enter: '/hangman'")
-        else:
-            guess = message.split(" ")
-            if len(guess) < 2:
-                message_send(token, channel_id, "Invalid entry: to guess enter '/guess X'")
-                return
-            guess = guess[1]
-
-        for x in HANGMAN_DATA['channels']:
-            if x['channel_id'] == channel_id:
-                message_send(token, channel_id, "++++++++++ START OF ROUND ++++++++++")
-                guess = guess.upper()
-                x['guesses'].append(guess)
-
-                # Checking correctness
-                correct = 0
-                if guess in x['word']:
-                    correct = 1
-                    HOLDER = ""
-                    for i in range(len(x['word'])):
-                        if x['word'][i] == guess:
-                            HOLDER += guess
-                        else:
-                            HOLDER += x['guessed_word'][i]
-                    x['guessed_word'] = HOLDER
-
-                # Increment wrong counter if team does not guess correctly
-                if correct == 0: 
-                    x['wrong'] += 1
-
-                WRONG = x['wrong']
-                message = HANGMAN[WRONG]
-                message_send(token, channel_id, message)
-                message_send(token, channel_id, "WORD IS: {} \n".format(x['guessed_word']))
-                message_send(token, channel_id, "YOU HAVE USED {}/7 LIVES: {}".format(WRONG, "X " * WRONG))
-                message_send(token, channel_id, "YOU HAVE GUESSED THESE LETTERS/ WORDS: {}".format(x['guesses']))
-
-                # check if the team has won
-                if x['guessed_word'] == x['word']:
-                    message_send(token, channel_id, "++++++++++ CONGRATULATIONS YOU WIN!!! THE WORD WAS {} ++++++++++".format(x['word']))
-                    x['word'] = ""
-                    x['guessed_word'] = ""
-                    x['wrong'] = 0
-                    x['guesses'] = []
-                    x['in_progress'] = 0
-
-                # check if the team has lost
-                if x['wrong'] == 7:
-                    message_send(token, channel_id, "{}".format(HANGMAN[7]))
-                    message_send(token, channel_id, "YOU WERE HANGED. GAME OVER. THE WORD WAS {}".format(x['word']))
-                    x['word'] = ""
-                    x['guessed_word'] = ""
-                    x['wrong'] = 0
-                    x['guesses'] = []
-                    x['in_progress'] = 0       
-            break
-
-
 def message_send(token, channel_id, message): # pylint: disable=invalid-name,too-many-arguments,too-many-locals,too-many-branches
     '''
     Sends a message to a valid channel
@@ -254,7 +53,7 @@ def message_send(token, channel_id, message): # pylint: disable=invalid-name,too
     message_id = -1
     time_stamp = int(time.time())
     reacts = []
-    is_pinned = 0
+    is_pinned = False
     message = Message(None, message_id, u_id, channel_id, message, time_stamp, reacts, is_pinned)
     _id = Message.insert_one(message)
     if _id is None:
@@ -331,18 +130,12 @@ def message_edit(token, message_id, msg): # pylint: disable=invalid-name,too-man
     if channel is None:
         raise InputError("Channel ID of message is invalid")
 
-    is_owner = 0
-    for i in channel['members']:
-        if i['u_id'] == u_id and i['rank'] == 1:
-            is_owner = 1
-            break
-
     sent_by = 0
     if message['u_id'] == u_id:
         sent_by = 1
 
-    if sent_by != 1 and is_owner != 1:
-        raise AccessError("Cannot remove: User did not send the message \
+    if sent_by != 1:
+        raise AccessError("Cannot edit: User did not send the message \
             and user is not an owner of the channel")
     
     Message.update_message_attribute('message_id', message_id, 'message', msg)
@@ -362,7 +155,7 @@ def send_later(u_id, channel_id, message): # pylint: disable=invalid-name,unused
     message = message
     time_created = time_stamp
     reacts = []
-    is_pinned = 0
+    is_pinned = False
 
     new_message = Message(None, m_id, u_id, channel_id, message, time_created, reacts, is_pinned)
     _id = Message.insert_one(new_message)
@@ -540,7 +333,7 @@ def message_pin(token, message_id): # pylint: disable=invalid-name,too-many-bran
         raise InputError("Message(based on ID) no longer exists")
     
     # Check that message is not pinned
-    if message['is_pinned'] == 1:
+    if message['is_pinned']:
         raise InputError("Message with ID message_id is already pinned")
 
     # Get channel from message channel_id 
@@ -558,7 +351,7 @@ def message_pin(token, message_id): # pylint: disable=invalid-name,too-many-bran
         raise AccessError("User is not an owner of the channel that the message is within")
 
     #pinning the message
-    Message.update_message_attribute('message_id', message_id, 'is_pinned', 1)
+    Message.update_message_attribute('message_id', message_id, 'is_pinned', True)
 
     return {}
 
@@ -577,7 +370,7 @@ def message_unpin(token, message_id): # pylint: disable=invalid-name,too-many-br
         raise InputError("Message(based on ID) no longer exists")
     
     # Check that message is pinned
-    if message['is_pinned'] == 0:
+    if not message['is_pinned']:
         raise InputError("Message with ID message_id is not pinned")
 
     # Get channel from message channel_id 
@@ -595,6 +388,6 @@ def message_unpin(token, message_id): # pylint: disable=invalid-name,too-many-br
         raise AccessError("User is not an owner of the channel that the message is within")
 
     # unpinning the message
-    Message.update_message_attribute('message_id', message_id, 'is_pinned', 0)
+    Message.update_message_attribute('message_id', message_id, 'is_pinned', False)
 
     return {}

@@ -85,6 +85,9 @@ class User:
             try:
                 total = coll.count()
                 json_obj['u_id'] = total + 1
+                largest_user_id = coll.find().sort([("u_id",pymongo.ASCENDING)]).limit(1)
+                user_id = largest_user_id.next()['u_id'] + 1
+                json_obj['u_id'] = user_id
             except:
                 return None
             # Insert into database
