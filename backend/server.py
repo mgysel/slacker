@@ -14,6 +14,7 @@ import urllib
 from flask import Flask, request, redirect, url_for, make_response
 from flask_cors import CORS, cross_origin
 from flask.json import jsonify
+from flask_mail import Mail, Message
 from bson.objectid import ObjectId
 from functools import wraps
 from error import InputError, AccessError
@@ -38,30 +39,6 @@ from objects.userObject import User
 sys.path.append("./src")
 
 '''
-########## Data Variables and Setup ##########
-'''
-USER_DATA = {'num_users': 0, 'users': []}
-CHANNEL_DATA = {'num_channels': 0, 'channels': []}
-MESSAGE_DATA = {'channels': []}
-HANGMAN_DATA = {'channels': []}
-
-# # Loads USER_DATA if available
-# if os.path.exists('src/user_data.p'):
-#     USER_DATA = pickle.load(open('src/user_data.p', 'rb'))
-
-# # Loads CHANNEL_DATA if available
-# if os.path.exists('src/channel_data.p'):
-#     CHANNEL_DATA = pickle.load(open('src/channel_data.p', 'rb'))
-
-# # Loads MESSAGE_DATA if available
-# if os.path.exists('src/message_data.p'):
-#     MESSAGE_DATA = pickle.load(open('src/message_data.p', 'rb'))
-
-# # Loads HANGMAN_DATA if available
-# if os.path.exists('src/hangman_data.p'):
-#     HANGMAN_DATA = pickle.load(open('src/hangman_data.p', 'rb'))
-
-'''
 ########## Error Handler ##########
 '''
 def defaultHandler(error):
@@ -84,6 +61,23 @@ APP.config['SECRET_KEY'] = 'your secret key'
 APP.config['CORS_HEADERS'] = 'Content-Type'
 APP.config['TRAP_HTTP_EXCEPTIONS'] = True
 APP.register_error_handler(Exception, defaultHandler)
+
+try:
+    with open('credentials/credentials.json', 'r') as creds_file:
+        credentials = json.load(creds_file)
+    if "mail_server" not in credentials or "mail_port" not in credentials or "mail_username" not in credentials or "mail_password" not in credentials:
+        raise InputError("Credentials file not valid")
+    else:
+        APP.config['MAIL_SERVER'] = credentials['mail_server']
+        APP.config['MAIL_PORT'] = credentials['mail_port']
+        APP.config['MAIL_USERNAME'] = credentials['mail_username']
+        APP.config['MAIL_PASSWORD'] = credentials['mail_password']
+        APP.config['MAIL_USE_TLS'] = False
+        APP.config['MAIL_USE_SSL'] = True
+except:
+    raise InputError("Credentials file not valid")
+
+mail = Mail(APP)
 
 '''
 ############### Main routes ###############
@@ -135,10 +129,9 @@ def request_reset():
     '''
     req_data = request.get_json()
 
-    result = auth_request(req_data['email'])
+    result = auth_request(APP.config['MAIL_USERNAME'], req_data['email'], mail)
 
     return dumps(result)
-
 
 @APP.route('/auth/passwordreset/reset', methods=['POST'])
 def reset_reset():
@@ -148,10 +141,9 @@ def reset_reset():
     '''
     req_data = request.get_json()
 
-    result = auth_reset(req_data['reset_code'], req_data['new_password'], USER_DATA)
+    result = auth_reset(req_data['reset_code'], req_data['new_password'])
 
     return dumps(result)
-
 
 '''
 ######### user.py routes #########
@@ -493,7 +485,6 @@ def admin_permission_change():
     Changes a users permission_id
     '''
     req_data = request.get_json()
-    print("REQ DATA: ", req_data)
 
     result = admin_userpermission_change(req_data['token'], \
     int(req_data['u_id']), int(req_data['permission_id']))
@@ -512,22 +503,6 @@ def admin_delete_user():
 
     return dumps(result)
 
-
-'''
-######### Data related routes #########
-'''
-@APP.route('/workspace/reset', methods=['POST'])
-def reset_data():
-    '''
-    Resets server data
-    '''
-    global USER_DATA, CHANNEL_DATA, MESSAGE_DATA
-    USER_DATA = {'num_users': 0, 'users': []}
-    CHANNEL_DATA = {'num_channels': 0, 'channels': []}
-    MESSAGE_DATA = {'channels': []}
-    HANGMAN_DATA = {'channels': []}
-
-    return dumps({})
 
 PORT = 2080
 BACKEND_URL = "http://127.0.0.1:" + str(PORT)

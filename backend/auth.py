@@ -16,7 +16,7 @@ from json import dumps
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from datetime import datetime, timedelta
-
+from flask_mail import Mail, Message as FlaskMessage
 
 '''
 ########## Main functions ##########
@@ -163,42 +163,38 @@ def auth_logout(token):      # pylint: disable=invalid-name
         'is_success': True
         }
 
-def auth_request(email):       # pylint: disable=invalid-name
+def auth_request(sender, recipient, mail):       # pylint: disable=invalid-name
     '''
     Using the data passed in searches for user, if found will file a password
     request for user and send code to users email
     '''
+
     # Checks user email is valid and gathers user data
-    user = User.find_user_by_attribute('email', email)
+    user = User.find_user_by_attribute('email', recipient)
     if user is None:
         # This is done so users emails can't be discovered using reset page
         return {}
 
     # Generates a string and sets it as reset code
     reset_code = gen_string()
-    User.update_user_attribute('email', email, 'reset_code', reset_code)
+    User.update_user_attribute('email', recipient, 'reset_code', reset_code)
 
-    # Sends email using TLC encryption
-    port = 587
-    smtp_server = 'smtp.gmail.com'
-    sender = 'pyjamasemail@gmail.com'
-    password = 'P1j@m@$%'
-
-    message = f'''\
-    Subject: Password Reset
-
+    recipients = [recipient]
+    title = "Slackr Password Reset"
+    body = f'''\
     Hi there {user['name_first']},
-    This is your code: {reset_code}'''
 
-    context = ssl.create_default_context()
-    with smtplib.SMTP(smtp_server, port) as server:
-        server.starttls(context=context)
-        server.login(sender, password)
-        server.sendmail(sender, email, message)
+    This is your password reset code: {reset_code}'''
+
+    msg = FlaskMessage(title)
+    msg.sender = sender
+    msg.recipients=recipients
+    msg.body = body
+    mail.send(msg)
 
     return {}
 
-def auth_reset(reset_code, new_password, USER_DATA):       # pylint: disable=invalid-name
+def auth_reset(reset_code, new_password):       # pylint: disable=invalid-name
     '''
     Using the data passed in searches for user with the same reset code, if
     found will set password to new password, else will return error
@@ -207,18 +203,20 @@ def auth_reset(reset_code, new_password, USER_DATA):       # pylint: disable=inv
     if reset_code == -1:
         raise InputError(description='Reset Code is Invalid!')
 
-    # if not valid_user('reset_code', reset_code, USER_DATA):
-    #     raise InputError(description='Reset Code is Invalid!')
+    # Check if reset code is valid
+    user = User.find_user_by_attribute('reset_code', reset_code)
+    if user is None:
+        raise InputError(description='Reset Code is Invalid!')
 
     # Checks password is valid
     if len(new_password) < 6:
         raise InputError(description='Password too short!')
 
-    # Collects user data and changes password
-    usr = queryUserData('reset_code', reset_code, USER_DATA)
-
-    usr['password'] = hash_string(new_password)
-    usr['reset_code'] = -1
+    # Update user password
+    User.update_user_attributes(
+        'reset_code', reset_code, 
+        {'password': hash_string(new_password), 'reset_code': -1}
+    )
 
     return {}
 
