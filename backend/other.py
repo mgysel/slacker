@@ -202,13 +202,8 @@ def search(token, query_str):
     messages = Message.find_messages_by_attribute('u_id', user['u_id'])
     messages_list = []
     for m in messages:
-        print("QUERY STR: ", query_str)
-        print("MESSAGE: ", m['message'])
-        print("QUERY STR IN MESSAGE?: ", query_str.lower() in m['message'].lower())
         if query_str.lower() in m['message'].lower():
-            print("M BEFORE: ", m)
             del m['_id']
-            print("M AFTER: ", m)
             messages_list.append(m)
 
     print("MESSAGES LIST: ", messages_list)

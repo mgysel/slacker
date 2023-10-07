@@ -152,12 +152,9 @@ def user_profile_upload_photo(token, img_url, x_start, y_start, x_end, y_end, BA
     # Get image from image url, crop
     try:
         img_filename = f"static/{user['u_id']}.{img_url.split('.')[-1]}"
-        print("img_filename", img_filename)
         urllib.request.urlretrieve(img_url, img_filename)
-        print("Inside urllib.request")
         # Open image if 200 response code
         img = Image.open(img_filename)
-        print("Opened img: ", img)
         width, height = img.size
 
         x_start = int(x_start)
@@ -173,16 +170,12 @@ def user_profile_upload_photo(token, img_url, x_start, y_start, x_end, y_end, BA
 
         # Crop Image
         cropped_image = img.crop([x_start, y_start, x_end, y_end])
-        print("Cropped img: ", cropped_image)
         cropped_image.save(img_filename)
 
         # profile_img_url = f'/static/{u_id}.jpg'
         # Save cropped image url in user database
         profile_img_url = f'{BACKEND_URL}/static/{user["u_id"]}.{img_url.split(".")[-1]}'
         User.update_user_attribute('token', token, 'profile_img_url', profile_img_url)
-
-        # Update user profile_img_url
-        # User.update_user_attribute('token', token, 'profile_img_url', profile_img_url)
 
     except urllib.error.HTTPError as e:     # pylint: disable=unused-variable
         raise InputError('img_url returns an HTTP status other than 200: ', e)
