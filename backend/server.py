@@ -168,7 +168,6 @@ def user_info():
 
     return dumps(result)
 
-
 @APP.route('/user/profile/setname', methods=['PUT'])
 def user_change_name():
     '''
@@ -208,8 +207,7 @@ def user_change_handle():
 
     return dumps(result)
 
-
-@APP.route('/user/profile/uploadphoto', methods=['PUT', 'GET'])
+@APP.route('/user/profiles/uploadphoto', methods=['PUT', 'GET', 'POST'])
 def user_upload_photo():
     '''
     Uploads a users profile photo
@@ -218,7 +216,7 @@ def user_upload_photo():
 
     result = user_profile_upload_photo(req_data['token'], \
         req_data['img_url'], req_data['x_start'], req_data['y_start'], \
-        req_data['x_end'], req_data['y_end'])
+        req_data['x_end'], req_data['y_end'], BACKEND_URL)
 
     return dumps(result)
 
@@ -536,5 +534,7 @@ def reset_data():
 
     return dumps({})
 
+PORT = 2080
+BACKEND_URL = "http://127.0.0.1:" + str(PORT)
 if __name__ == "__main__":
-    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else 2080), debug=True)
+    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else PORT), debug=True)

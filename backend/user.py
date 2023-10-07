@@ -133,7 +133,7 @@ def usersAll(token):     # pylint: disable=invalid-name
 
     return all_users
 
-def user_profile_upload_photo(token, img_url, x_start, y_start, x_end, y_end):     # pylint: disable=too-many-arguments
+def user_profile_upload_photo(token, img_url, x_start, y_start, x_end, y_end, BACKEND_URL):     # pylint: disable=too-many-arguments
     '''
     Given url of an image, crops the image within the bounds(x, y)
     Input error when not a jpeg, not within (x, y) dimensions, or
@@ -144,36 +144,45 @@ def user_profile_upload_photo(token, img_url, x_start, y_start, x_end, y_end):  
     if user is None:
         raise AccessError('Invalid token!')
     
-    if not img_url.endswith('jpg'):
-        raise InputError('Image uploaded is not a jpeg')
+    if not img_url.endswith('jpg') and not img_url.endswith('jpeg') \
+            and not img_url.endswith('png') and not img_url.endswith('svg') \
+            and not img_url.endswith('tiff'):
+        raise InputError('Image uploaded is not a jpeg, png, svg or tiff!')
 
     # Get image from image url, crop
     try:
-        with urllib.request.urlopen(img_url) as response:
-            # Open image if 200 response code
-            image = Image.open(BytesIO(response.read()))
-            width, height = image.size
+        img_filename = f"static/{user['u_id']}.{img_url.split('.')[-1]}"
+        print("img_filename", img_filename)
+        urllib.request.urlretrieve(img_url, img_filename)
+        print("Inside urllib.request")
+        # Open image if 200 response code
+        img = Image.open(img_filename)
+        print("Opened img: ", img)
+        width, height = img.size
 
-            x_start = int(x_start)
-            y_start = int(y_start)
-            x_end = int(x_end)
-            y_end = int(y_end)
+        x_start = int(x_start)
+        y_start = int(y_start)
+        x_end = int(x_end)
+        y_end = int(y_end)
 
-            # Check if valid (x, y) values
-            if (x_start < 0) or (y_start < 0) or \
-                (x_end > (x_start + width)) or (y_end > (y_start + height)):
-                raise InputError('Any of x_start, y_start, x_end, y_end are not \
-                    within the dimensions of the image at the URL.')
+        # Check if valid (x, y) values
+        if (x_start < 0) or (y_start < 0) or \
+            (x_end > (x_start + width)) or (y_end > (y_start + height)):
+            raise InputError('Any of x_start, y_start, x_end, y_end are not \
+                within the dimensions of the image at the URL.')
 
-            # Crop/Save image
-            cropped_image = image.crop([x_start, y_start, x_end, y_end])
-            u_id = user['u_id']
-            cropped_image.save(f"src/static/{u_id}.jpg")
+        # Crop Image
+        cropped_image = img.crop([x_start, y_start, x_end, y_end])
+        print("Cropped img: ", cropped_image)
+        cropped_image.save(img_filename)
 
-            profile_img_url = f'/static/{u_id}.jpg'
+        # profile_img_url = f'/static/{u_id}.jpg'
+        # Save cropped image url in user database
+        profile_img_url = f'{BACKEND_URL}/static/{user["u_id"]}.{img_url.split(".")[-1]}'
+        User.update_user_attribute('token', token, 'profile_img_url', profile_img_url)
 
-            # Update user profile_img_url
-            User.update_user_attribute('token', token, 'profile_img_url', profile_img_url)
+        # Update user profile_img_url
+        # User.update_user_attribute('token', token, 'profile_img_url', profile_img_url)
 
     except urllib.error.HTTPError as e:     # pylint: disable=unused-variable
         raise InputError('img_url returns an HTTP status other than 200: ', e)
