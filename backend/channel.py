@@ -129,7 +129,6 @@ def channel_messages(token, channel_id, start):      # pylint: disable=invalid-n
 
     # Collects channels message data, if nothing returns empty message list
     messages = Message.find_messages_by_attribute('channel_id', channel_id)
-    print("CHannel messages: ", messages)
     if len(messages) == 0:
         print("lenght of messages is 0")
         if start > 0:
@@ -158,10 +157,20 @@ def channel_messages(token, channel_id, start):      # pylint: disable=invalid-n
     if end == -1:
         for message in messages[start:]:
             del message['_id']
+            for react in message['reacts']:
+                if user['u_id'] in react['u_ids']:
+                    react['is_this_user_reacted'] = True
+                else:
+                    react['is_this_user_reacted'] = False
             msgs['messages'].append(message)
     else:
         for message in messages[start:end]:
             del message['_id']
+            for react in message['reacts']:
+                if user['u_id'] in react['u_ids']:
+                    react['is_this_user_reacted'] = True
+                else:
+                    react['is_this_user_reacted'] = False
             msgs['messages'].append(message)
 
     return msgs
