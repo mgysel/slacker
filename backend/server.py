@@ -181,7 +181,6 @@ def user_change_name():
 
     return dumps(result)
 
-
 @APP.route('/user/profile/setemail', methods=['PUT'])
 def user_change_email():
     '''
@@ -193,7 +192,6 @@ def user_change_email():
                                 req_data['email'])
 
     return dumps(result)
-
 
 @APP.route('/user/profile/sethandle', methods=['PUT'])
 def user_change_handle():
@@ -234,7 +232,6 @@ def users_channels():
 
     return dumps(result)
 
-
 @APP.route('/channels/listall', methods=['GET'])
 def all_channels():
     '''
@@ -245,7 +242,6 @@ def all_channels():
     result = channels_listall(token)
 
     return dumps(result)
-
 
 @APP.route('/channels/create', methods=['POST'])
 def create_channel():
@@ -387,8 +383,7 @@ def sendlater_message():
     '''
     req_data = request.get_json()
 
-    message_sendlater(int(req_data['u_id']), int(req_data['channel_id']), \
-    req_data['message'], req_data['time_sent'])
+    message_sendlater(req_data['token'], int(req_data['channel_id']), req_data['message'], req_data['time_sent'])
 
     return dumps({})
 
@@ -446,7 +441,6 @@ def active_standup():
 
     return dumps(result)
 
-
 @APP.route('/standup/start', methods=['POST'])
 def start_standup():
     '''
@@ -466,7 +460,7 @@ def send_standup():
     req_data = request.get_json()
 
     standup_send(req_data['token'], int(req_data['channel_id']), \
-    req_data['message'], USER_DATA, CHANNEL_DATA,)
+    req_data['message'])
 
     return dumps({})
 

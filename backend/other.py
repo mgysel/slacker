@@ -15,69 +15,12 @@ from message import message_send
 from objects.userObject import User
 from objects.channelObject import Channel
 from objects.messageObject import Message
+import sched
+import time
 
 '''
 ########## Helper functions ##########
 '''
-
-def is_valid_channel(channel_id, CHANNEL_DATA):
-    '''
-    Checks if the channel_id is valid.
-    Return True if valid, false otherwise
-    '''
-    return len(get_channel_data(channel_id, CHANNEL_DATA))
-
-def is_user_in_channel(token, channel_id, CHANNEL_DATA, USER_DATA):
-    '''
-    Checks if user is a member of channel_id
-    Returns True if user in channel
-    Returns False otherwise
-    '''
-    u_id = queryUserData('token', token, USER_DATA)['u_id']
-    members = get_channel_data(channel_id, CHANNEL_DATA)['members']
-    return len([member for member in members if member['u_id'] == u_id])
-
-def is_standup_in_session(channel_id, CHANNEL_DATA):
-    '''
-    Determines if standup for channel_id is in session
-    Returns True if in session, False otherwise
-    '''
-    this_channel = get_channel_data(channel_id, CHANNEL_DATA)
-    return this_channel['standup']['is_active']
-
-def get_standup_data(channel_id, CHANNEL_DATA):
-    '''
-    Returns dictionary of standup data corresponding to channel_id
-    '''
-    return get_channel_data(channel_id, CHANNEL_DATA)['standup']
-
-def update_standup_key(channel_id, key, value, CHANNEL_DATA):
-    '''
-    Updates channel_id's standup data (key to new value)
-    '''
-    this_channel = get_channel_data(channel_id, CHANNEL_DATA)
-    this_channel['standup'][key] = value
-
-def update_standup(channel_id, length, CHANNEL_DATA):
-    '''
-    Updates channel_id's 'standup' key with new standup time_finish
-    Returns the time the standup finishes
-    '''
-    time_finish = datetime.now() + timedelta(seconds=length)
-
-    update_standup_key(channel_id, 'is_active', 1, CHANNEL_DATA)
-    update_standup_key(channel_id, 'time_finish', time_finish, CHANNEL_DATA)
-    update_standup_key(channel_id, 'message', None, CHANNEL_DATA)
-    return time_finish
-
-def reset_standup(channel_id, CHANNEL_DATA):
-    '''
-    Resets channel_id's standup to default values
-    Used to reset a standup once it is complete
-    '''
-    update_standup_key(channel_id, 'is_active', 0, CHANNEL_DATA)
-    update_standup_key(channel_id, 'time_finish', None, CHANNEL_DATA)
-    update_standup_key(channel_id, 'message', None, CHANNEL_DATA)
 
 def is_message_valid(message):
     '''
@@ -90,42 +33,66 @@ def is_message_valid(message):
 ########## Main functions ##########
 '''
 
-def send_standup_later(token, length, channel_id, message, \
-    USER_DATA, CHANNEL_DATA, MESSAGE_DATA):
-    '''
-    Sends standup message after time
-    '''
-    if not message is None:
-        Timer(length, message_send(token, channel_id, message, \
-            USER_DATA, CHANNEL_DATA, MESSAGE_DATA))
-    reset_standup(channel_id, CHANNEL_DATA)
-
-def standup_start(token, channel_id, length, USER_DATA, CHANNEL_DATA, MESSAGE_DATA):
+def standup_start(token, channel_id, length):
     '''
     Starts the standup period for channel_id
     Returns time_finish
     InputError when the channel_id is not a valid channel_id
     InputError when a standup is currently in session
     '''
-    if isValidUser('token', token, USER_DATA):
-        # Errors
-        if not is_valid_channel(channel_id, CHANNEL_DATA):
-            raise InputError("NOT A VALID a valid channel")
-        elif is_standup_in_session(channel_id, CHANNEL_DATA):
-            raise InputError(f'An active standup is currently running in \
-                this channel')
-    else:
-        # Start Standup, Update channel_data standup key
-        time_finish = update_standup(channel_id, length, CHANNEL_DATA)
+    # Check if valid user
+    user = User.find_user_by_attribute('token', token)
+    if user is None:
+        raise AccessError('Invalid token!')
+    
+    # Check if valid channel
+    channel = Channel.find_channel_by_attribute('channel_id', channel_id)
+    if channel is None:
+        raise InputError('Invalid channel ID!')
+    
+    # Check if standup is in session
+    if channel['standup']['is_active']:
+        raise InputError('An active standup is currently running in this channel')
+    
+    # Update channel standup
+    time_finish = datetime.now() + timedelta(seconds=length)
+    standup_obj = {
+        'is_active': 1,
+        'time_finish': time_finish,
+        'message': None
+    }
+    Channel.update_channel_attribute('channel_id', channel_id, 'standup', standup_obj)
 
-        # Send message, reset standup data after length seconds
-        message = get_standup_data(channel_id, CHANNEL_DATA)['message']
-        if not message is None:
-            send_standup_later(token, length, channel_id, message, \
-                USER_DATA, CHANNEL_DATA, MESSAGE_DATA)
+    Timer(length, standup_end, [token, channel_id]).start()
 
     return {'time_finish': time_finish.strftime('%Y %m %d %H %M %S')}
 
+def standup_end(token, channel_id):
+    '''
+    Ends the standup period for channel_id
+    '''
+    # Get user
+    user = User.find_user_by_attribute('token', token)
+    if user is None:
+        raise AccessError('Invalid token!')
+
+    # Get channel
+    channel = Channel.find_channel_by_attribute('channel_id', channel_id)
+    if channel is None:
+        raise InputError('Invalid channel ID!')
+    
+    # Send standup message
+    if channel['standup']['message'] is not None:
+        message_send(token, channel_id, channel['standup']['message'])
+
+    # Update standup
+    channel_standup = {
+        'is_active': 0,
+        'time_finish': None,
+        'message': None
+    }
+    Channel.update_channel_attribute('channel_id', channel_id, 'standup', channel_standup)
+    
 def standup_active(token, channel_id):
     '''
     Returns standup information
@@ -140,12 +107,13 @@ def standup_active(token, channel_id):
     channel = Channel.find_channel_by_attribute('channel_id', channel_id)
     if channel is None:
         raise InputError('Invalid channel ID!')
-    print("CHANNEL: ", channel)
+
     channel_data_time = channel['standup']['time_finish']
     time_finish = None
     if channel_data_time is not None:
-        time_finish = channel_data_time.strftime('%Y %m %d %H %M %S')
+        time_finish = channel_data_time.timestamp()
     is_active = channel['standup']['is_active']
+    
     return {'is_active': is_active, 'time_finish': time_finish}
 
 def standup_send(token, channel_id, message):
@@ -165,7 +133,7 @@ def standup_send(token, channel_id, message):
         raise InputError('Invalid channel ID!')
     
     # Check if standup is in session
-    if not channel['is_active']:
+    if not channel['standup']['is_active']:
         raise InputError('An active standup is not currently running in this channel')
     
     # Check if message is valid
@@ -175,14 +143,14 @@ def standup_send(token, channel_id, message):
     # Check if user is in channel
     is_member = False
     for member in channel['members']:
-        if member['u_id'] == user.u_id:
+        if member['u_id'] == user['u_id']:
             is_member = True
             break
     if not is_member:
         raise AccessError('The authorised user is not a member of the channel that the message is within')
 
     # Send standup message
-    new_message = f"{user['first_name']} {message} \n"
+    new_message = f"{user['handle_str']}: {message}.\n"
     channel_standup = channel['standup']
     if channel_standup['message'] is not None:
         new_message = channel_standup['message'] + new_message

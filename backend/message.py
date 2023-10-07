@@ -247,7 +247,6 @@ def message_send(token, channel_id, message): # pylint: disable=invalid-name,too
         raise AccessError("The authorised user has not joined the channel \
             they are trying to post to")
     
-
     # # Call hangman function 
     # if message == "/hangman" or message.startswith("/guess") is True:
     #     hangman(token, channel_id, message, USER_DATA, CHANNEL_DATA, MESSAGE_DATA, HANGMAN_DATA)
@@ -350,66 +349,57 @@ def message_edit(token, message_id, msg): # pylint: disable=invalid-name,too-man
 
     return {}
 
-def send_later(u_id, channel_id, message, time_sent, USER_DATA, CHANNEL_DATA, MESSAGE_DATA): # pylint: disable=invalid-name,unused-argument,too-many-arguments
+def send_later(u_id, channel_id, message): # pylint: disable=invalid-name,unused-argument,too-many-arguments
     '''
     Send a message at a later time specified
     '''
     # Getting time_stamp of message
     time_stamp = int(time.time())
 
-    # Case 1: a dict has been created for that channel
-    channel_exists_flag = 0
-    for i in MESSAGE_DATA['channels']:
-        # Check if a dict has been created for specified channel
-        if i["channel_id"] == channel_id:
-            channel_exists_flag = 1
-            m_id = (channel_id * 5000) + len(i['messages'])
-            new_message = {
-                'message_id': m_id,
-                'u_id': u_id,
-                'message': message,
-                'time_created': time_stamp,
-                'reacts': [],
-                'is_pinned': 0,
-            }
-            # Add new message to list of messages
-            i["messages"].append(new_message)
-            break
+    # Add message 
+    m_id = -1
+    u_id = u_id
+    message = message
+    time_created = time_stamp
+    reacts = []
+    is_pinned = 0
 
+    new_message = Message(None, m_id, u_id, channel_id, message, time_created, reacts, is_pinned)
+    _id = Message.insert_one(new_message)
+    if _id is None:
+        raise InputError("Message could not be added to database")
 
-    # Case 2: no dict has been created yet
-    if channel_exists_flag == 0:
-        # create channel dict
-        new_channel = {
-            'channel_id': channel_id,
-            'messages': [],
-        }
-        MESSAGE_DATA['channels'].append(new_channel)
-
-        # Append message
-        for i in MESSAGE_DATA['channels']:
-            # Check if a dict has been created for specified channel
-            if i['channel_id'] == channel_id:
-                m_id = (channel_id * 5000) + len(i['messages'])
-                new_message = {
-                    'message_id': m_id,
-                    'u_id': u_id,
-                    'message': message,
-                    'time_created': time_stamp,
-                    'reacts': [],
-                    'is_pinned': 0,
-                }
-                # Add new message to list of messages
-                i["messages"].append(new_message)
+    message = Message.find_message_by_attribute('_id', _id)
 
     return {
-        'message_id': m_id
+        'message_id': message['message_id']
     }
 
-def message_sendlater(token, channel_id, message, time_sent, USER_DATA, CHANNEL_DATA, MESSAGE_DATA): # pylint: disable=invalid-name,too-many-arguments
+def message_sendlater(token, channel_id, message, time_sent): # pylint: disable=invalid-name,too-many-arguments
     '''
     Send a message at a later time specified
     '''
+    print("Sending message later")
+    print("Time sent: ", time_sent)
+    # Check valid user
+    user = User.find_user_by_attribute('token', token)
+    if user is None:
+        raise AccessError('Invalid token!')
+    
+    # Check valid channel
+    channel = Channel.find_channel_by_attribute('channel_id', channel_id)
+    if channel is None:
+        raise InputError("Channel ID is invalid")
+    
+    # Check user a member of channel
+    is_member = 0
+    for i in channel['members']:
+        if i['u_id'] == user['u_id']:
+            is_member = 1
+            break
+    if is_member == 0:
+        raise AccessError("User is not a member of the channel that the message is within")
+
     # Getting time_stamp of message
     time_stamp = int(time.time())
 
@@ -421,45 +411,10 @@ def message_sendlater(token, channel_id, message, time_sent, USER_DATA, CHANNEL_
     if len(message) > 1000:
         raise InputError("Message is more than 1000 characters")
 
-    # Checking that the token belong to a valid user
-    real_user = 0
-    for i in USER_DATA['users']:
-        if i['token'] == token:
-            real_user = 1
-            break
-    assert real_user == 1
-
-    # Checking that channel exists
-    channel_exists = 0
-    for i in CHANNEL_DATA['channels']:
-        if i['channel_id'] == channel_id:
-            channel_exists = 1
-            break
-
-    if channel_exists == 0:
-        raise InputError("Channel ID is not a valid channel")
-
-    # Getting user's u_id
-    u_id = queryUserData('token', token, USER_DATA).get('u_id')
-
-    # Checking that user has joined the channel they are trying to post to
-    joined_channel = 0
-    for i in CHANNEL_DATA['channels']:
-        if i['channel_id'] == channel_id:
-            for j in i['members']:
-                if j['u_id'] == u_id:
-                    joined_channel = 1
-                    break
-
-    if joined_channel == 0:
-        raise AccessError("The authorised user has not joined the channel \
-            they are trying to post to")
-
     # Set up scheduler
     S = sched.scheduler(time.time, time.sleep)
     # Schedule when you want the action to occur
-    S.enterabs(time_sent, 0, send_later, \
-        argument=(u_id, channel_id, message, time_sent, USER_DATA, CHANNEL_DATA, MESSAGE_DATA))
+    S.enterabs(time_sent, 0, send_later, argument=(user['u_id'], channel_id, message))
     # Block until the action has been run
     S.run()
 

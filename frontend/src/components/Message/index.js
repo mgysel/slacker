@@ -34,7 +34,7 @@ function Message({
   React.useEffect(() => {
     setName();
     setInitials();
-    setImgUrl()
+    setImgUrl();
     axios
       .get(`/user/profile`, {
         params: {
@@ -84,8 +84,7 @@ function Message({
                 <>
                   <span>{name}</span>
                   <span style={{ paddingLeft: 10, fontSize: 10 }}>
-                    {time_created}
-                    {/*MJG ADDED: timeago(time_created * 1000)*/}
+                    {timeago(time_created * 1000)}
                   </span>
                 </>
               }

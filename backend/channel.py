@@ -183,7 +183,7 @@ def channel_leave(token, channel_id):      # pylint: disable=invalid-name
     user = User.find_user_by_attribute('token', token)
     if user is None:
         raise AccessError(description='Invalid token!')
-    
+
     channel = Channel.find_channel_by_attribute('channel_id', channel_id)
     if channel is None:
         raise InputError(description='Invalid channel ID!')

@@ -20,13 +20,13 @@ class Message:
     '''
     Message class that contains basic user info/methods
     '''
-    def __init__(self, _id, message_id, u_id, channel_id, message, time_stamp, reacts, is_pinned):
+    def __init__(self, _id, message_id, u_id, channel_id, message, time_created, reacts, is_pinned):
         self._id = _id
         self.message_id = message_id
         self.u_id = u_id
         self.channel_id = channel_id
         self.message = message
-        self.time_stamp = time_stamp
+        self.time_created = time_created
         self.reacts = reacts
         self.is_pinned = is_pinned
 
@@ -36,14 +36,14 @@ class Message:
         Message json object to Message Object
         '''
         if msg_json != None:
-            properties = ['message_id', 'u_id', 'message', 'time_stamp', 'reacts', 'is_pinned']
+            properties = ['message_id', 'u_id', 'message', 'time_created', 'reacts', 'is_pinned']
             for prop in properties:
                 if prop not in msg_json:
                     return None
             _id = None
             if '_id' in msg_json:
                 _id = msg_json['_id']
-            return Message(_id, msg_json['message_id'], msg_json['u_id'], msg_json['message'], msg_json['time_stamp'], msg_json['reacts'], msg_json['is_pinned'])
+            return Message(_id, msg_json['message_id'], msg_json['u_id'], msg_json['message'], msg_json['time_created'], msg_json['reacts'], msg_json['is_pinned'])
 
     def to_json(self):
         '''

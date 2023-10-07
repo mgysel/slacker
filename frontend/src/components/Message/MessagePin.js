@@ -39,10 +39,11 @@ function MessagePin({
       })
       .then(() => {
         step();
+        console.log("Is it pinned? ", isPinned);
       });
     }
     // Optimistic re-rendering
-    // setIsPinned(isPinned => !!!isPinned);
+    setIsPinned(isPinned => !!!isPinned);
   };
 
   return (

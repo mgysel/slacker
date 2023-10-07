@@ -18,8 +18,6 @@ function ChannelMessages({ channel_id = '' }) {
   const [currentStart, setCurrentStart] = React.useState(0);
   const token = React.useContext(AuthContext);
 
-  console.log("INSIDE CHANNEL MESSAGES");
-
   const fetchChannelMessages = () => axios
   .get('/channel/messages', {
     params: {
@@ -29,14 +27,11 @@ function ChannelMessages({ channel_id = '' }) {
     },
   })
   .then(({ data }) => {
-    console.log("FETCH CHANNEL MESSAGES: ");
-    console.log(data);
     const { messages: newMessages, start, end } = data;
     setCurrentStart(end); // TODO: add/remove problems
     setMessages(messages.concat(newMessages));
   })
-  .catch((err) => {
-    console.log("ERROR FETCH CHANNEL MESSAGES");
+  .catch(() => {
   });
 
   const resetChannelMessages = () => axios
@@ -48,10 +43,10 @@ function ChannelMessages({ channel_id = '' }) {
     },
   })
   .then(({ data }) => {
-    console.log("Get messages success: ", data)
     const { messages: newMessages, start, end } = data;
     setCurrentStart(end); // TODO: add/remove problems
     setMessages(newMessages);
+    console.log("MESSAGES: ", newMessages);
   })
   .catch((err) => {
     console.log("Get messages error: ", err)
@@ -77,6 +72,7 @@ function ChannelMessages({ channel_id = '' }) {
           </Button>
         )
       }
+      <AddMessage channel_id={channel_id} />
       <List
         subheader={<ListSubheader>Messages</ListSubheader>}
         style={{ width: '100%' }}
@@ -85,7 +81,6 @@ function ChannelMessages({ channel_id = '' }) {
           <Message key={message.message_id} {...message} />
         ))}
       </List>
-      <AddMessage channel_id={channel_id} />
     </StepProvider>
   );
 }
