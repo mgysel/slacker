@@ -1,5 +1,7 @@
 from pymongo import MongoClient
 import json
+import os
+
 class CredentialsError(Exception):
     def __init__(self, message):
         self.message = message
@@ -13,12 +15,13 @@ class MongoWrapper:
     def __init__(self):
         self.__dict__ = self.__shared_state
         try:
-            with open('credentials/credentials.json', 'r') as creds_file:
-                credentials = json.load(creds_file)
-            if "username" not in credentials or "password" not in credentials or "connection_string" not in credentials:
-                raise CredentialsError("Credentials file not valid")
-            else:
-                connection_string = credentials['connection_string'].replace('{{username}}', credentials['username']).replace('{{password}}', credentials['password'])
-                self.client = MongoClient(connection_string)
+            username = os.environ.get('DATABASE_USERNAME')
+            if username is None:
+                raise CredentialsError("Username not set as environment variable")
+            password = os.environ.get('DATABASE_PASSWORD')
+            if password is None:
+                raise CredentialsError("Password not set as environment variable")
+            connection_string = f"mongodb+srv://<username>:<password>@cluster1.oc2krpz.mongodb.net/?retryWrites=true&w=majority".replace('<username>', username).replace('<password>', password)
+            self.client = MongoClient(connection_string)
         except:
-            raise CredentialsError("Credentials file not valid")
+            raise CredentialsError("Credentials not valid")

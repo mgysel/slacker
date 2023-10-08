@@ -33,10 +33,10 @@ message_unreact, message_pin, message_unpin
 from other import standup_active, standup_start, usersAll, \
 standup_send, admin_userpermission_change, admin_user_remove, search
 import jwt
+from dotenv import load_dotenv, find_dotenv, dotenv_values
+load_dotenv(find_dotenv())
 
 from objects.userObject import User
-
-sys.path.append("./src")
 
 '''
 ########## Error Handler ##########
@@ -62,12 +62,12 @@ APP.config['CORS_HEADERS'] = 'Content-Type'
 APP.config['TRAP_HTTP_EXCEPTIONS'] = True
 APP.register_error_handler(Exception, defaultHandler)
 
-APP.config['DATABASE_USERNAME'] = os.environ.get('SLACKR_DB_USERNAME')
-APP.config['DATABASE_PASSWORD'] = os.environ.get('SLACKR_DB_PASSWORD')
-APP.config['MAIL_SERVER'] = os.environ.get('SLACKR_MAIL_SERVER')
-APP.config['MAIL_PORT'] = os.environ.get('SLACKR_MAIL_PORT')
-APP.config['MAIL_USERNAME'] = os.environ.get('SLACKR_MAIL_USERNAME')
-APP.config['MAIL_PASSWORD'] = os.environ.get('SLACKR_MAIL_PASSWORD')
+APP.config['DATABASE_USERNAME'] = os.environ.get('DATABASE_USERNAME')
+APP.config['DATABASE_PASSWORD'] = os.environ.get('DATABASE_PASSWORD')
+APP.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER')
+APP.config['MAIL_PORT'] = os.environ.get('MAIL_PORT')
+APP.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+APP.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 APP.config['MAIL_USE_TLS'] = False
 APP.config['MAIL_USE_SSL'] = True
 
@@ -506,5 +506,5 @@ def index():
 PORT = 2080
 BACKEND_URL = "http://127.0.0.1:" + str(PORT)
 if __name__ == "__main__":
-    # APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else PORT), debug=True)
-    APP.run(threaded=True, port=5000)
+    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else PORT), debug=True)
+    # APP.run(threaded=True, port=5000)

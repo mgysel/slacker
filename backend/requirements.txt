@@ -13,3 +13,4 @@ PyJWT==2.6.0
 Werkzeug==2.2.2
 zipp==3.11.0
 Pillow==8.0.1
+python-dotenv==0.21.1

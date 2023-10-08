@@ -7,14 +7,14 @@ import { DEFAULT_ERROR_TEXT } from './utils/text';
 import { toast } from 'react-toastify';
 
 axios.defaults.baseURL = url;
-axios.defaults.headers.put['Content-Type'] = 'application/x-www-form-urlencoded';
-axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
-axios.defaults.headers.delete['Content-Type'] = 'application/x-www-form-urlencoded';
+axios.defaults.headers.put['Content-Type'] = 'application/json';
+axios.defaults.headers.post['Content-Type'] = 'application/json';
+axios.defaults.headers.delete['Content-Type'] = 'application/json';
 
 axios.interceptors.request.use((request) => {
-    if (request.method === 'put' || request.method === 'post' || request.method === 'delete') {
-        request.data = qs.stringify(request.data);
-    }
+    // if (request.method === 'put' || request.method === 'post' || request.method === 'delete') {
+    //     request.data = qs.stringify(request.data);
+    // }
     return request;
 });
 
