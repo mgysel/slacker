@@ -9,7 +9,6 @@ import time
 import sched
 from error import AccessError, InputError
 from helpers import queryUserData
-from random_word import RandomWords
 from objects.channelObject import Channel
 from objects.userObject import User
 from objects.messageObject import Message
