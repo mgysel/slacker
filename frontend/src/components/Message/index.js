@@ -34,7 +34,7 @@ function Message({
   React.useEffect(() => {
     setName();
     setInitials();
-    setImgUrl();
+    setImgUrl()
     axios
       .get(`/user/profile`, {
         params: {
@@ -44,19 +44,14 @@ function Message({
       })
       .then(({ data }) => {
         const {
-          email = 'email',
+          email = '',
           name_first = '',
           name_last = '',
           handle_str = '',
           profile_img_url = '',
         } = data;
-        console.log("DATA: ", data);
-        console.log("name_first: ", name_first);
-        console.log("name_last: ", name_last);
-        console.log("name_first[0]: ", name_first[0]);
         setName(`${name_first} ${name_last}`);
-        // setInitials(`${name_first[0]}${name_last[0]}`);
-        setInitials(`${name_first}${name_last}`);
+        setInitials(`${name_first[0]}${name_last[0]}`);
         setImgUrl(`${profile_img_url}`)
       })
       .catch((err) => {

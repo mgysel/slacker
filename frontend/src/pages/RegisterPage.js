@@ -49,8 +49,6 @@ function RegisterPage({ setAuth, ...props }) {
     // Quick validation
     if (!values.email || !values.password) return;
 
-    console.log("Values: ", { ...values });
-
     // Send to backend
     axios.post(`/auth/register`, { ...values })
       .then((response) => {

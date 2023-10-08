@@ -145,7 +145,6 @@ function AddMessage({ channel_id = '' }) {
     }
   }, 1000);
 
-  // MJG: COMMENTED OUT
   useInterval(() => {
     if (standupRemaining > 0) return;
     axios

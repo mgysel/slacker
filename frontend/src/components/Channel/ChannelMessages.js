@@ -29,11 +29,9 @@ function ChannelMessages({ channel_id = '' }) {
   .then(({ data }) => {
     const { messages: newMessages, start, end } = data;
     setCurrentStart(end); // TODO: add/remove problems
-    console.log("NEW MESSAGES: ", newMessages);
     setMessages(messages.concat(newMessages));
   })
-  .catch(() => {
-  });
+  .catch((err) => {});
 
   const resetChannelMessages = () => axios
   .get('/channel/messages', {
@@ -47,11 +45,8 @@ function ChannelMessages({ channel_id = '' }) {
     const { messages: newMessages, start, end } = data;
     setCurrentStart(end); // TODO: add/remove problems
     setMessages(newMessages);
-    console.log("MESSAGES: ", newMessages);
   })
-  .catch((err) => {
-    console.log("Get messages error: ", err)
-  });
+  .catch((err) => {});
 
   React.useEffect(() => {
     resetChannelMessages();
@@ -73,7 +68,6 @@ function ChannelMessages({ channel_id = '' }) {
           </Button>
         )
       }
-      <AddMessage channel_id={channel_id} />
       <List
         subheader={<ListSubheader>Messages</ListSubheader>}
         style={{ width: '100%' }}
@@ -82,6 +76,7 @@ function ChannelMessages({ channel_id = '' }) {
           <Message key={message.message_id} {...message} />
         ))}
       </List>
+      <AddMessage channel_id={channel_id} />
     </StepProvider>
   );
 }
