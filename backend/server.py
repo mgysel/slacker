@@ -503,8 +503,14 @@ def admin_delete_user():
 
     return dumps(result)
 
+@APP.route('/testing')
+@cross_origin()
+def index():
+    # A welcome message to test our server
+    return "<h1>Welcome to our medium-greeting-api!</h1>"
 
 PORT = 2080
 BACKEND_URL = "http://127.0.0.1:" + str(PORT)
 if __name__ == "__main__":
-    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else PORT), debug=True)
+    # APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else PORT), debug=True)
+    APP.run(threaded=True, port=5000)
