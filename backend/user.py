@@ -12,6 +12,7 @@ from PIL import Image
 from helpers import queryUserData, isValidUser, valid_email
 from error import AccessError, InputError
 from objects.userObject import User
+from helpers import get_profile_img_url
 
 '''
 ########## Main functions ##########
@@ -34,7 +35,7 @@ def user_profile(token, u_id):       # pylint: disable=invalid-name
         'name_first': user['name_first'],
         'name_last': user['name_last'],
         'handle_str': user['handle_str'],
-        'profile_img_url': user['profile_img_url']
+        'profile_img_url': get_profile_img_url(user['profile_img_url'])
     }
 
     return user_info
@@ -120,6 +121,8 @@ def usersAll(token):     # pylint: disable=invalid-name
     all_users = {'users': []}
     users = User.get_all_users()
     for user in users:
+        profile_img_url = get_profile_img_url(user['profile_img_url'])
+        print("PROFILE IMG URL: ", profile_img_url)
         all_users['users'].append(
             {
                 'u_id': user['u_id'],
@@ -127,7 +130,7 @@ def usersAll(token):     # pylint: disable=invalid-name
                 'name_first': user['name_first'],
                 'name_last': user['name_last'],
                 'handle_str': user['handle_str'],
-                'profile_img_url': user['profile_img_url']
+                'profile_img_url': get_profile_img_url(user['profile_img_url'])
             }
         )
 
@@ -174,7 +177,7 @@ def user_profile_upload_photo(token, img_url, x_start, y_start, x_end, y_end, BA
 
         # profile_img_url = f'/static/{u_id}.jpg'
         # Save cropped image url in user database
-        profile_img_url = f'{BACKEND_URL}/static/{user["u_id"]}.{img_url.split(".")[-1]}'
+        profile_img_url = f'static/{user["u_id"]}.{img_url.split(".")[-1]}'
         User.update_user_attribute('token', token, 'profile_img_url', profile_img_url)
 
     except urllib.error.HTTPError as e:     # pylint: disable=unused-variable

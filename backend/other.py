@@ -15,6 +15,7 @@ from message import message_send
 from objects.userObject import User
 from objects.channelObject import Channel
 from objects.messageObject import Message
+from helpers import get_profile_img_url
 import sched
 import time
 import os
@@ -199,7 +200,7 @@ def usersAll(token):     # pylint: disable=invalid-name
             'name_first': user.name_first,
             'name_last': user.name_last,
             'handle_str': user.handle_str,
-            'profile_img_url': user.profile_img_url,
+            'profile_img_url': get_profile_img_url(user.profile_img_url),
             'permission_id': user.permission_id,
         })
 

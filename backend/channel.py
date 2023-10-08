@@ -10,6 +10,7 @@ from helpers import queryUserData, isValidUser
 from objects.channelObject import Channel
 from objects.userObject import User
 from objects.messageObject import Message
+from helpers import get_profile_img_url
 
 '''
 ########## Main functions ##########
@@ -93,7 +94,7 @@ def channel_details(token, channel_id):    # pylint: disable=invalid-name
             'u_id': user['u_id'],
             'name_first': user['name_first'],
             'name_last': user['name_last'],
-            'profile_img_url': user['profile_img_url']
+            'profile_img_url': get_profile_img_url(user['profile_img_url'])
         }
         if member['rank']:
             details['owner_members'].append(mem_details)

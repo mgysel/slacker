@@ -73,9 +73,6 @@ APP.config['MAIL_USE_SSL'] = True
 
 APP.config['BACKEND_URL'] = os.environ.get("BACKEND_URL")
 
-print("DOES PATH EXIST")
-print(os.path.exists(f"./static/2.jpg"))
-
 mail = Mail(APP)
 
 '''

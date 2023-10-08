@@ -5,6 +5,8 @@ Last Modified:  23/03/2020
 Description:    Commonly used helper functions for slackr
 '''
 import re
+import os
+from error import AccessError, InputError
 
 def queryUserData(key, value, USER_DATA):   # pylint: disable=invalid-name
     '''
@@ -37,3 +39,12 @@ def valid_email(email):
         return True
 
     return False
+
+def get_profile_img_url(filename):
+    '''
+    Returns the profile image url from image filename
+    '''
+    backend_url = os.environ.get('BACKEND_URL')
+    if backend_url is None:
+        return InputError('BACKEND_URL not set as environment variable')
+    return f"{backend_url}/{filename}"
