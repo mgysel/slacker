@@ -62,20 +62,12 @@ APP.config['CORS_HEADERS'] = 'Content-Type'
 APP.config['TRAP_HTTP_EXCEPTIONS'] = True
 APP.register_error_handler(Exception, defaultHandler)
 
-try:
-    with open('credentials/credentials.json', 'r') as creds_file:
-        credentials = json.load(creds_file)
-    if "mail_server" not in credentials or "mail_port" not in credentials or "mail_username" not in credentials or "mail_password" not in credentials:
-        raise InputError("Credentials file not valid")
-    else:
-        APP.config['MAIL_SERVER'] = credentials['mail_server']
-        APP.config['MAIL_PORT'] = credentials['mail_port']
-        APP.config['MAIL_USERNAME'] = credentials['mail_username']
-        APP.config['MAIL_PASSWORD'] = credentials['mail_password']
-        APP.config['MAIL_USE_TLS'] = False
-        APP.config['MAIL_USE_SSL'] = True
-except:
-    raise InputError("Credentials file not valid")
+APP.config['MAIL_SERVER'] = os.environ.get('SLACKR_MAIL_SERVER')
+APP.config['MAIL_PORT'] = os.environ.get('SLACKR_MAIL_PORT')
+APP.config['MAIL_USERNAME'] = os.environ.get('SLACKR_MAIL_USERNAME')
+APP.config['MAIL_PASSWORD'] = os.environ.get('SLACKR_MAIL_PASSWORD')
+APP.config['MAIL_USE_TLS'] = False
+APP.config['MAIL_USE_SSL'] = True
 
 mail = Mail(APP)
 
