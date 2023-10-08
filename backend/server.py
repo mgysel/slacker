@@ -506,5 +506,5 @@ def index():
     return "<h1>Welcome to our medium-greeting-api!</h1>"
 
 if __name__ == "__main__":
-    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else 2080), debug=True)
-    # APP.run(threaded=True, port=5000)
+    # APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else 2080), debug=True)
+    APP.run(threaded=True, port=5000)
