@@ -57,6 +57,7 @@ function ChannelMessages({ channel_id = '' }) {
   return (
     <StepProvider value={resetChannelMessages}>
       <hr />
+      <AddMessage channel_id={channel_id} />
       {
         (currentStart != -1 &&
           <Button
@@ -76,7 +77,6 @@ function ChannelMessages({ channel_id = '' }) {
           <Message key={message.message_id} {...message} />
         ))}
       </List>
-      <AddMessage channel_id={channel_id} />
     </StepProvider>
   );
 }

@@ -76,8 +76,8 @@ class Message:
             coll = db['messages']
             try:
                 # Get message id 
-                largest_message_id = coll.find().sort([("message_id",pymongo.ASCENDING)]).limit(1)
-                message_id = largest_message_id.next()['message_id'] + 1
+                largest_message_id = coll.find().sort([("message_id",pymongo.DESCENDING)]).limit(1).next()
+                message_id = largest_message_id['message_id'] + 1
                 json_obj['message_id'] = message_id
                 inserted = coll.insert_one(json_obj)
                 return inserted.inserted_id

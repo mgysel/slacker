@@ -17,6 +17,7 @@ from objects.channelObject import Channel
 from objects.messageObject import Message
 import sched
 import time
+import os
 
 '''
 ########## Helper functions ##########
@@ -247,7 +248,8 @@ def admin_user_remove(token, u_id):      # pylint: disable=invalid-name
     # Checks user1 is authorised
     if user1['permission_id'] != 1:
         raise AccessError(description='Unauthorised user!')
-    
+
+   # Update database entry 
     user_attribute_updates = {
         'email': '',
         'password': '',
@@ -258,7 +260,10 @@ def admin_user_remove(token, u_id):      # pylint: disable=invalid-name
         'name_last': '',
         'handle_str': '[deleted]'
     }
-
     User.update_user_attributes('u_id', u_id, user_attribute_updates)
+
+    file_type = user2['profile_img_url'].split(".")[-1]
+    if os.path.exists(f'./static/{u_id}.{file_type}'):
+        os.remove(f'./static/{u_id}.{file_type}')
 
     return {}

@@ -71,6 +71,11 @@ APP.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 APP.config['MAIL_USE_TLS'] = False
 APP.config['MAIL_USE_SSL'] = True
 
+APP.config['BACKEND_URL'] = os.environ.get("BACKEND_URL")
+
+print("DOES PATH EXIST")
+print(os.path.exists(f"./static/2.jpg"))
+
 mail = Mail(APP)
 
 '''
@@ -200,7 +205,7 @@ def user_upload_photo():
 
     result = user_profile_upload_photo(req_data['token'], \
         req_data['img_url'], req_data['x_start'], req_data['y_start'], \
-        req_data['x_end'], req_data['y_end'], BACKEND_URL)
+        req_data['x_end'], req_data['y_end'], APP.config['BACKEND_URL'])
 
     return dumps(result)
 
@@ -503,8 +508,6 @@ def index():
     # A welcome message to test our server
     return "<h1>Welcome to our medium-greeting-api!</h1>"
 
-PORT = 2080
-BACKEND_URL = "http://127.0.0.1:" + str(PORT)
 if __name__ == "__main__":
-    # APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else PORT), debug=True)
-    APP.run(threaded=True, port=5000)
+    APP.run(port=(int(sys.argv[1]) if len(sys.argv) == 2 else 2080), debug=True)
+    # APP.run(threaded=True, port=5000)

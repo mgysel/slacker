@@ -260,13 +260,3 @@ def gen_handle(name_first, name_last):       # pylint: disable=invalid-name
     # TODO: Check if unique handle
 
     return handle
-
-# def unique_handle(handle, USER_DATA):       # pylint: disable=invalid-name
-#     '''
-#     Checks if a handle is unique or taken
-#     '''
-#     for usr in USER_DATA['users']:
-#         if handle == usr['handle_str']:
-#             return False
-
-#     return True

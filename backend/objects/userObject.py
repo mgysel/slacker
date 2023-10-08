@@ -83,10 +83,8 @@ class User:
             coll = db['users']
             # Get total number of items, update u_id
             try:
-                total = coll.count()
-                json_obj['u_id'] = total + 1
-                largest_user_id = coll.find().sort([("u_id",pymongo.ASCENDING)]).limit(1)
-                user_id = largest_user_id.next()['u_id'] + 1
+                largest_user_id = coll.find().sort([("u_id",pymongo.DESCENDING)]).limit(1).next()
+                user_id = largest_user_id['u_id'] + 1
                 json_obj['u_id'] = user_id
             except:
                 return None

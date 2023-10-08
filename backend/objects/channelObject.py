@@ -76,8 +76,8 @@ class Channel:
             coll = db['channels']
             # Get channel id 
             try:
-                largest_channel_id = coll.find().sort([("channel_id",pymongo.ASCENDING)]).limit(1)
-                channel_id = largest_channel_id.next()['channel_id'] + 1
+                largest_channel_id = coll.find().sort([("channel_id",pymongo.DESCENDING)]).limit(1).next()
+                channel_id = largest_channel_id['channel_id'] + 1
                 json_obj['channel_id'] = channel_id
                 inserted = coll.insert_one(json_obj)
                 return inserted.inserted_id
