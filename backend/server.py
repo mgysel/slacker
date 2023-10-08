@@ -62,6 +62,8 @@ APP.config['CORS_HEADERS'] = 'Content-Type'
 APP.config['TRAP_HTTP_EXCEPTIONS'] = True
 APP.register_error_handler(Exception, defaultHandler)
 
+APP.config['DATABASE_USERNAME'] = os.environ.get('SLACKR_DB_USERNAME')
+APP.config['DATABASE_PASSWORD'] = os.environ.get('SLACKR_DB_PASSWORD')
 APP.config['MAIL_SERVER'] = os.environ.get('SLACKR_MAIL_SERVER')
 APP.config['MAIL_PORT'] = os.environ.get('SLACKR_MAIL_PORT')
 APP.config['MAIL_USERNAME'] = os.environ.get('SLACKR_MAIL_USERNAME')
