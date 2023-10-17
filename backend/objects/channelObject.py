@@ -70,18 +70,20 @@ class Channel:
         Inserts a channel object into the database
         '''
         json_obj = channel.to_json()
-        print("JSON OBJ: ", json_obj)
         if json_obj != None:
             db = MongoWrapper().client['Peerstr']
             coll = db['channels']
             # Get channel id 
             try:
-                largest_channel_id = coll.find().sort([("channel_id",pymongo.DESCENDING)]).limit(1).next()
-                channel_id = largest_channel_id['channel_id'] + 1
+                total_num = coll.count()
+                channel_id = 1
+                if total_num != 0:
+                    largest_channel_id = coll.find().sort([("channel_id",pymongo.DESCENDING)]).limit(1).next()
+                    channel_id = largest_channel_id['channel_id'] + 1
                 json_obj['channel_id'] = channel_id
                 inserted = coll.insert_one(json_obj)
                 return inserted.inserted_id
-            except:
+            except Exception as e:
                 return None
 
     @classmethod

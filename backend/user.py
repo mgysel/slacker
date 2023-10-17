@@ -26,8 +26,10 @@ def user_profile(token, u_id):       # pylint: disable=invalid-name
     user = User.find_user_by_attribute('token', token)
     if user is None:
         raise AccessError('Invalid token!')
-    if user['u_id'] != u_id:
-        raise InputError('u_id is not valid!')
+    
+    user = User.find_user_by_attribute('u_id', u_id)
+    if user is None:
+        raise InputError('Invalid u_id!')
 
     user_info = {
         'u_id': user['u_id'],
@@ -122,7 +124,6 @@ def usersAll(token):     # pylint: disable=invalid-name
     users = User.get_all_users()
     for user in users:
         profile_img_url = get_profile_img_url(user['profile_img_url'])
-        print("PROFILE IMG URL: ", profile_img_url)
         all_users['users'].append(
             {
                 'u_id': user['u_id'],

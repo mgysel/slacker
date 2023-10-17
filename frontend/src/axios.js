@@ -20,6 +20,7 @@ axios.interceptors.request.use((request) => {
 
 const errorHandler = (error) => {
     // great gist https://gist.github.com/saqueib/a495af17d7c0e2fd5c2316b0822ebac3
+    console.log("*** Inside errorHandler");
 
     // if has response show the error
     console.error(error);
@@ -27,8 +28,12 @@ const errorHandler = (error) => {
     let message = DEFAULT_ERROR_TEXT;
 
     if (error.response) {
-        console.log(error.response.data)
+        console.log("error.response");
+        console.log(error.response.data);
+        error.response.data.message = error.response.data.message.replace( /(<([^>]+)>)/ig, '');
+        console.log(error.response.data); 
         message = _.get(error, 'response.data.message') || DEFAULT_ERROR_TEXT;
+        console.log("message: ", message);
     }
 
     toast.error(message);
@@ -37,6 +42,8 @@ const errorHandler = (error) => {
 }
 
 const responseHandler = (response) => {
+    console.log("*** Inside responseHandler");
+    console.log("Response: ", response);
     return response;
 }
 

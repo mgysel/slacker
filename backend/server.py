@@ -46,7 +46,6 @@ def defaultHandler(error):
     Handles flask errors
     '''
     response = error.get_response()
-    print('response', error, error.get_response())
     response.data = dumps({
         "code": error.code,
         "name": "System Error",

@@ -171,8 +171,6 @@ def message_sendlater(token, channel_id, message, time_sent): # pylint: disable=
     '''
     Send a message at a later time specified
     '''
-    print("Sending message later")
-    print("Time sent: ", time_sent)
     # Check valid user
     user = User.find_user_by_attribute('token', token)
     if user is None:
@@ -214,9 +212,6 @@ def message_react(token, message_id, react_id): # pylint: disable=invalid-name,t
     '''
     Allows the user to react to a specific message
     '''
-    print("*** Inside message_react")
-    print("Message id: ", message_id)
-    print("React id: ", react_id)
     if react_id != 1:
         raise InputError("Not a valid react_id. The only valid react ID the frontend has is 1")
 
@@ -227,7 +222,6 @@ def message_react(token, message_id, react_id): # pylint: disable=invalid-name,t
 
     # Check if message exists
     message = Message.find_message_by_attribute('message_id', message_id)
-    print("Message: ", message)
     if message is None:
         raise InputError("Message(based on ID) no longer exists")
 
@@ -272,7 +266,6 @@ def message_unreact(token, message_id, react_id): # pylint: disable=invalid-name
     '''
     Allows a user to unreact to a message
     '''
-    print("REACT ID: ", react_id)
     if react_id != 1:
         raise InputError("Not a valid react_id. The only valid react ID the frontend has is 1")
 

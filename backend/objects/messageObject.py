@@ -75,14 +75,16 @@ class Message:
             db = MongoWrapper().client['Peerstr']
             coll = db['messages']
             try:
-                # Get message id 
-                largest_message_id = coll.find().sort([("message_id",pymongo.DESCENDING)]).limit(1).next()
-                message_id = largest_message_id['message_id'] + 1
+                total_num = coll.count()
+                message_id = 1
+                if total_num != 0:
+                    # Get message id 
+                    largest_message_id = coll.find().sort([("message_id",pymongo.DESCENDING)]).limit(1).next()
+                    message_id = largest_message_id['message_id'] + 1
                 json_obj['message_id'] = message_id
                 inserted = coll.insert_one(json_obj)
                 return inserted.inserted_id
             except Exception as e:
-                print("Exception: ", e)
                 return None
 
     @classmethod

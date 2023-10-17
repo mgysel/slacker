@@ -176,7 +176,6 @@ def search(token, query_str):
             del m['_id']
             messages_list.append(m)
 
-    print("MESSAGES LIST: ", messages_list)
     return {
         'messages': messages_list
     }

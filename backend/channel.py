@@ -100,7 +100,6 @@ def channel_details(token, channel_id):    # pylint: disable=invalid-name
             details['owner_members'].append(mem_details)
         details['all_members'].append(mem_details)
 
-    print("Channel details returning: ", details)
     return details
 
 def channel_messages(token, channel_id, start):      # pylint: disable=invalid-name, too-many-arguments, too-many-branches
@@ -130,7 +129,6 @@ def channel_messages(token, channel_id, start):      # pylint: disable=invalid-n
     # Collects channels message data, if nothing returns empty message list
     messages = Message.find_messages_by_attribute('channel_id', channel_id)
     if len(messages) == 0:
-        print("lenght of messages is 0")
         if start > 0:
             raise InputError(description='Invalid start enter, larger than number of messages!')
 
@@ -172,8 +170,6 @@ def channel_messages(token, channel_id, start):      # pylint: disable=invalid-n
                 else:
                     react['is_this_user_reacted'] = False
             msgs['messages'].append(message)
-
-    print("Messages: ", msgs['messages'])
 
     msgs['messages'] = sorted(msgs['messages'], key=lambda h: (h['is_pinned'], h['time_created']))
     return msgs
